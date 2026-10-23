@@ -1,4 +1,4 @@
-# Rencana Pengembangan — OpenNVR
+# Rencana Pengembangan — LensaLAN
 
 Tanggal: 23 Oktober 2026  
 Status: pelaksanaan bertahap; fondasi M0/M1 dan sebagian M2–M4 sudah diimplementasikan (pembaruan 24 Oktober 2026)

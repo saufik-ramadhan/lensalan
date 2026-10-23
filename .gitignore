@@ -35,7 +35,15 @@ compile_commands.json
 engine.lock
 engine.json
 camera.json
+cameras.json
+camera-*.json
+/config/cameras/
 gstreamer-registry.bin
+*.pem
+*.key
+*.pfx
+*.p12
+*.dmp
 __pycache__/
 *.pyc
 /.venv/

@@ -1,4 +1,4 @@
-# OpenNVR
+# LensaLAN
 
 Aplikasi desktop Windows untuk memonitor maksimal 12 IP camera di LAN dan merekam event ketika host computer mendeteksi orang.
 
@@ -15,10 +15,12 @@ Status: live grid 1/4/9/12 dan engine hingga 12 kamera sudah diimplementasikan, 
 
 Target awal: TP-Link Tapo C520WS, Intel Core i5-12400F, NVIDIA RTX 3060 12 GB, RAM DDR4 16 GB. Stack yang direncanakan: C++20, Qt 6/QML, GStreamer, ONNX Runtime CUDA, SQLite, dan Windows Service.
 
-Pada komputer dengan service yang sudah terpasang, jalankan `OpenNVR.cmd`; desktop mendeteksi konfigurasi service dan terhubung ke engine di ProgramData. Untuk development tanpa service, pilih **Jalankan engine pengguna**. Engine berjalan terus dan tidak ikut berhenti saat jendela ditutup. Gunakan **Jeda deteksi** atau **Hentikan engine pengguna** untuk mengontrol proses pengguna. Tab Diagnostik mempertahankan probe M0 yang terpisah.
+Pada komputer dengan service yang sudah terpasang, jalankan `LensaLAN.cmd`; desktop mendeteksi konfigurasi service dan terhubung ke engine di ProgramData. Untuk development tanpa service, pilih **Jalankan engine pengguna**. Engine berjalan terus dan tidak ikut berhenti saat jendela ditutup. Gunakan **Jeda deteksi** atau **Hentikan engine pengguna** untuk mengontrol proses pengguna. Tab Diagnostik mempertahankan probe M0 yang terpisah.
 
 Tab **Live grid** menampilkan substream dari engine tanpa membuka RTSP tambahan. Tab **Kamera** menyimpan hingga 12 profil terenkripsi; katalog diterapkan ke service lewat installer elevated. Runtime service lama perlu diperbarui untuk mengaktifkan kanal media baru. Klik dua kali pada tile untuk fokus satu kamera; gunakan pemilih grid/paginasi untuk kembali atau berpindah kamera.
 
 Data engine development berada di `.local/engine/`, termasuk database, credential terenkripsi bila diprovision, dan rekaman. Default retensi adalah 14 hari/100 GB, dengan reserve ruang disk. Klip M0 pada `.local/recordings/` tetap terpisah dan tidak dibersihkan oleh retensi engine.
 
 Service sebelumnya sudah lulus startup kamera/CUDA, event person di Session 0, dan reboot berdasarkan konfirmasi pengguna. Build multi-kamera 0.3.0-dev kini terpasang; CUDA dan live grid satu kamera nyata sudah diuji. Soak 24 jam belum dilakukan; benchmark 12 kamera nyata, zona deteksi, ekspor klip dan installer desktop lengkap masih tahap berikutnya.
+
+Nama produk dan repository adalah **LensaLAN**. Identifier internal `opennvr`, nama service `OpenNVR`, path data serta variabel `OPENNVR_*` dipertahankan untuk kompatibilitas instalasi development yang sudah ada. Launcher lama tetap tersedia sebagai alias. Detail publikasi dan perlindungan data lokal ada di [PUBLICATION.md](docs/PUBLICATION.md).

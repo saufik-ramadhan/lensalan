@@ -1,4 +1,4 @@
-# Development log — OpenNVR
+# Development log — LensaLAN
 
 Catatan keputusan, perubahan, dan bukti pengujian. Gunakan commit Git sebagai riwayat perubahan sumber. Jangan menyimpan password kamera, URL berkredensial, atau video privat di log ini.
 
@@ -110,3 +110,12 @@ Catatan keputusan, perubahan, dan bukti pengujian. Gunakan commit Git sebagai ri
 - Uji live kamera nyata pada layout empat slot lulus: kamera-1 menghasilkan lima frame D3D11 dan status Live; slot lain kosong. Screenshot kamera nyata dinonaktifkan, metadata disimpan pada `.local/live-camera-grid-validation.json`.
 - Desktop terbaru dibuka sebagai proses interaktif, PID 2692. Pemeriksaan koneksi TCP menunjukkan dua RTSP established milik service dan tidak ada RTSP tambahan milik desktop. Snapshot ukuran rekaman sesudah upgrade sama dengan sebelum upgrade, 16.348.448 byte.
 - Pengguna dapat memakai tab Live grid dan Kamera. Profil tambahan diterapkan lewat installer elevated dengan bundle ini tanpa `-Resume`; hanya satu kamera fisik tersedia saat handoff. Reboot build sebelumnya dilaporkan lulus, sedangkan soak 24 jam, penerimaan 12 RTSP nyata dan uji person terkontrol sesudah update tetap belum dilakukan.
+
+## 2026-10-24 — Persiapan publikasi dengan nama LensaLAN
+
+- Pengguna meminta push ke repository GitHub publik miliknya setelah memastikan credential dan data sensitif komputer tidak ikut terunggah, lalu meminta nama yang berbeda dari OpenNVR. Nama produk/repository dipilih LensaLAN.
+- README, judul aplikasi/QML, metadata CMake, dokumentasi utama, label bundle dan launcher publik diperbarui. `LensaLAN.cmd` menjadi launcher utama; alias dan identifier teknis lama dipertahankan untuk kompatibilitas service/data/IPC yang sedang berjalan.
+- Audit sebelum publikasi mencakup seluruh branch/tag dan metadata commit/tag. Gitleaks 8.30.1 (binary release diverifikasi SHA-256) tidak menemukan leak pada 10 commit awal. Pemeriksaan lokal tambahan terhadap 139 blob unik historis bersih dari exact password kamera, alamat LAN aktual, path profil Windows, hostname dan SID pribadi. Password didekripsi hanya di memori untuk pencocokan dan tidak dimasukkan ke laporan/source.
+- Git memakai email noreply. Runtime/model unduhan, credential/config aktual, database, video, screenshot, log dan bundle berada di lokasi yang diabaikan Git; tidak ada file tersebut dalam riwayat tracked. Ignore rules diperluas untuk katalog/per-camera credential, key/certificate privat dan dump.
+- Tambahkan dokumentasi publikasi serta workflow secret scan pada setiap push/pull request, dengan download CLI yang diverifikasi checksum dan output redacted. Riwayat pengembangan dipertahankan karena audit tidak menemukan materi yang perlu dihapus.
+- Build dan smoke QML branding lulus; pengujian core/multi-kamera serta installer PowerShell 5.1 lulus. Service tidak diganti/restart untuk perubahan branding ini. Audit final setelah commit dilakukan sebelum push.

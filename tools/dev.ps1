@@ -27,7 +27,7 @@ try {
         }
         'run' {
             # This is the interactive app the user asked to open.
-            & (Join-Path $taskProjectRoot 'OpenNVR.cmd')
+            & (Join-Path $taskProjectRoot 'LensaLAN.cmd')
         }
         'capabilities' { & '.\build\dev\opennvr_probe.exe' --capabilities }
         'engine' {

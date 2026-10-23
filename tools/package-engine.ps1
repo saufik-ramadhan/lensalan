@@ -76,7 +76,7 @@ Copy-Item -LiteralPath (Join-Path $taskProjectRoot '.deps\models\yolox_tiny.onnx
 $taskLicenses = Join-Path $taskPrefix 'share\licenses'
 if (Test-Path -LiteralPath $taskLicenses) { Copy-Item -LiteralPath $taskLicenses -Destination (Join-Path $taskTarget 'licenses') -Recurse }
 $taskManifest = @{
-    product='OpenNVR engine development bundle'; version='0.3.0-dev'; createdUtc=[DateTime]::UtcNow.ToString('o')
+    product='LensaLAN engine development bundle'; version='0.3.0-dev'; createdUtc=[DateTime]::UtcNow.ToString('o')
     qt='6.11.2'; gstreamer='1.28.6'; onnxruntime='1.23.2'; model='YOLOX-Tiny 416'
     modelSha256=(Get-FileHash -LiteralPath (Join-Path $taskModelTarget 'yolox_tiny.onnx') -Algorithm SHA256).Hash.ToLowerInvariant()
     engineSha256=(Get-FileHash -LiteralPath (Join-Path $taskBin 'opennvr_engine.exe') -Algorithm SHA256).Hash.ToLowerInvariant()

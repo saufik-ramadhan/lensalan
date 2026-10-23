@@ -1,4 +1,4 @@
-# Windows Service — OpenNVR M1
+# Windows Service — LensaLAN (service kompatibel OpenNVR)
 
 ## Status dan batas verifikasi
 

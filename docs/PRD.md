@@ -1,4 +1,4 @@
-# Product Requirements Document — OpenNVR
+# Product Requirements Document — LensaLAN
 
 Tanggal: 23 Oktober 2026  
 Versi: 0.1 — draft untuk review  
@@ -7,7 +7,7 @@ Bahasa antarmuka awal: Bahasa Indonesia
 
 ## 1. Ringkasan produk
 
-OpenNVR adalah aplikasi lokal untuk memonitor maksimal 12 IP camera dan menyimpan klip video ketika komputer host mendeteksi orang. Deteksi berjalan di GPU host, tanpa mengandalkan event AI kamera atau cloud. Pengguna dapat melihat grid kamera, membuka kamera secara fullscreen, mencari event, dan memutar rekaman.
+LensaLAN adalah aplikasi lokal untuk memonitor maksimal 12 IP camera dan menyimpan klip video ketika komputer host mendeteksi orang. Deteksi berjalan di GPU host, tanpa mengandalkan event AI kamera atau cloud. Pengguna dapat melihat grid kamera, membuka kamera secara fullscreen, mencari event, dan memutar rekaman.
 
 Penerimaan stream, deteksi, serta perekaman dijalankan oleh Windows Service. Aplikasi desktop menjadi antarmuka kontrol dan monitoring. Menutup desktop atau logout tidak menghentikan service; komputer tetap harus menyala dan tidak sleep agar perekaman berlangsung.
 
@@ -196,7 +196,7 @@ Angka berikut adalah target penerimaan sementara, bukan klaim performa perangkat
 | NFR-03 | P95 latensi live ≤2 detik pada LAN sehat | Uji visual dengan clock/gerakan referensi; kondisi jaringan dicatat |
 | NFR-04 | P95 waktu frame siap untuk analisis → konfirmasi person ≤2 detik | Timestamp host; dilaporkan terpisah dari latensi kamera/jaringan |
 | NFR-05 | Konfirmasi → writer mulai ≤1 detik pada P95 | Trace event dan file; pre-roll tetap disertakan |
-| NFR-06 | Working set seluruh proses OpenNVR ≤8 GB pada kondisi stabil | Sampling 24 jam; ring buffer dan antrean berbatas |
+| NFR-06 | Working set seluruh proses LensaLAN ≤8 GB pada kondisi stabil | Sampling 24 jam; ring buffer dan antrean berbatas |
 | NFR-07 | Tidak ada crash/hang selama soak 24 jam | Termasuk 12 event bersamaan, putus jaringan, dan desktop dibuka/ditutup |
 | NFR-08 | Setelah stream kembali dapat dibaca, reconnect ≤30 detik | Putus/sambung terkontrol; waktu startup kamera tidak dihitung |
 | NFR-09 | Semua segmen yang sudah difinalisasi tetap dapat diputar setelah restart paksa | Uji kill service dan reboot; segmen aktif boleh partial dan ditandai |

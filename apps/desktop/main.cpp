@@ -163,8 +163,8 @@ int main(int argc, char** argv) {
         if (QString::fromUtf8(argv[i]) == "--camera-probe") return camera_probe(argc, argv);
     }
     QGuiApplication app(argc, argv);
-    QCoreApplication::setOrganizationName("OpenNVR");
-    QCoreApplication::setApplicationName("OpenNVR");
+    QCoreApplication::setOrganizationName("LensaLAN");
+    QCoreApplication::setApplicationName("LensaLAN");
     QQuickStyle::setStyle("Basic");
     qmlRegisterType<LiveVideo>("OpenNVR.Live", 1, 0, "LiveVideo");
     Backend backend(QDir::currentPath());

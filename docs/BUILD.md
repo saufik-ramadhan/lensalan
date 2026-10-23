@@ -1,4 +1,4 @@
-# Build dan menjalankan OpenNVR development
+# Build dan menjalankan LensaLAN development
 
 ## Status
 
@@ -44,7 +44,7 @@ Dari PowerShell di root proyek:
 .\tools\dev.ps1 engine-status
 ```
 
-Gunakan `-MsysRoot D:\msys64` bila berbeda dari `C:\msys64`. Launcher `.cmd` membaca variabel environment `OPENNVR_MSYS_ROOT` untuk lokasi alternatif.
+Gunakan `-MsysRoot D:\msys64` bila berbeda dari `C:\msys64`. Launcher `LensaLAN.cmd` membaca `LENSALAN_MSYS_ROOT`, dengan fallback `OPENNVR_MSYS_ROOT` untuk konfigurasi development lama.
 
 Core dapat dibangun tanpa Qt/GStreamer/ONNX, termasuk di Linux:
 
@@ -60,7 +60,7 @@ Workflow GitHub Actions disiapkan untuk core, tetapi belum pernah dijalankan di 
 
 1. Buat Camera Account di aplikasi Tapo sesuai [panduan TP-Link](https://www.tp-link.com/us/support/faq/2680/). Ini berbeda dari akun cloud Tapo.
 2. Pastikan PC dapat menjangkau port RTSP 554 kamera.
-3. Jalankan `OpenNVR.cmd`, buka tab Diagnostik, masukkan IP, username dan password, lalu pilih **Simpan terenkripsi**.
+3. Jalankan `LensaLAN.cmd`, buka tab Diagnostik, masukkan IP, username dan password, lalu pilih **Simpan terenkripsi**.
 4. Uji substream dan main stream secara terpisah sebelum menjalankan AI.
 5. Untuk uji terbatas, pilih **Uji deteksi orang (60 dtk)**. Untuk operasi berkelanjutan, kembali ke tab Engine & Event dan pilih **Jalankan engine pengguna**. Orang yang memenuhi konfirmasi dua dari tiga sampel memicu klip main stream; post-roll awal adalah 20 detik.
 
@@ -106,7 +106,7 @@ Untuk grid sintetis terisolasi:
 .\build\dev\opennvr_engine.exe --console --synthetic --cameras 12 --root . --data .local/grid-demo
 # Terminal 2:
 $env:OPENNVR_DATA_DIR = "$PWD/.local/grid-demo"
-.\OpenNVR.cmd
+.\LensaLAN.cmd
 ```
 
 Mode sintetis diberi label Simulasi, memakai pemicu uji dan tidak membuka kamera. Tab Kamera menyimpan katalog CurrentUser DPAPI di `.local/cameras.json` dan `.local/cameras/`; kamera-1 lama tetap kompatibel tanpa katalog. User engine memuat katalog lokal saat restart, kecuali memakai file credential/konfigurasi data terisolasi. Installer memprovision katalog ke config service. Lihat [ADR 0004](adr/0004-multicamera-live-grid.md) untuk batas media/scheduler.

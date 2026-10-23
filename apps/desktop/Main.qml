@@ -10,7 +10,7 @@ ApplicationWindow {
     minimumWidth: 1020
     minimumHeight: 780
     visible: true
-    title: "OpenNVR — Monitoring & Event"
+    title: "LensaLAN — Monitoring & Event"
     color: "#0b111b"
     font.family: "Segoe UI"
     font.pixelSize: 14
@@ -56,7 +56,7 @@ ApplicationWindow {
             Layout.fillWidth: true
             ColumnLayout {
                 spacing: 4
-                Label { text: "OPENNVR"; color: "#62dcc0"; font.pixelSize: 14; font.letterSpacing: 3 }
+                Label { text: "LENSALAN"; color: "#62dcc0"; font.pixelSize: 14; font.letterSpacing: 3 }
                 Label { text: "Monitoring & Event"; font.pixelSize: 30; font.bold: true }
                 Label { text: "Deteksi orang pada host · Rekaman lokal · Hingga 12 kamera"; color: "#93a5bd" }
             }
