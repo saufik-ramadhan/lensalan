@@ -1,0 +1,13 @@
+name: Core
+on: [push, pull_request]
+jobs:
+  core:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure portable core
+        run: cmake --preset core
+      - name: Build
+        run: cmake --build --preset core
+      - name: Test
+        run: ctest --preset core

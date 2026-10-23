@@ -1,0 +1,251 @@
+#include "media/probe.hpp"
+#include "media/encoded_ring.hpp"
+#include "media/event_writer.hpp"
+#include "detection/person_stream.hpp"
+
+#include <gst/app/gstappsink.h>
+#include <gst/gst.h>
+#include <gst/rtsp/gstrtsptransport.h>
+
+#include <cstring>
+#include <algorithm>
+#include <memory>
+#include <mutex>
+#include <optional>
+#include <sstream>
+#include <stdexcept>
+
+namespace opennvr {
+namespace {
+struct Pipeline {
+    GstElement* value = nullptr;
+    ~Pipeline() {
+        if (value) {
+            gst_element_set_state(value, GST_STATE_NULL);
+            gst_object_unref(value);
+        }
+    }
+};
+struct ObjectUnref { void operator()(gpointer value) const { if (value) gst_object_unref(value); } };
+using ElementPtr = std::unique_ptr<GstElement, ObjectUnref>;
+using BusPtr = std::unique_ptr<GstBus, ObjectUnref>;
+
+void progress(const ProbeConfig& config, const std::string& message) {
+    if (config.progress) config.progress(message);
+}
+} // namespace
+
+void initialize_media() {
+    static std::once_flag initialized;
+    std::call_once(initialized, [] { gst_init(nullptr, nullptr); });
+}
+
+std::vector<std::string> media_capabilities() {
+    initialize_media();
+    std::vector<std::string> result;
+    for (const auto* name : {"rtspsrc", "rtph264depay", "h264parse", "d3d11h264dec",
+                            "d3d11videosink", "qml6d3d11sink", "openh264enc", "matroskamux"}) {
+        GstElementFactory* factory = gst_element_factory_find(name);
+        result.push_back(std::string(name) + (factory ? ": available" : ": unavailable"));
+        if (factory) gst_object_unref(factory);
+    }
+    return result;
+}
+
+ProbeReport run_probe(const ProbeConfig& config) {
+    initialize_media();
+    ProbeReport report;
+    auto started = std::chrono::steady_clock::now();
+    try {
+        if (config.duration.count() < 1 || config.duration > std::chrono::minutes(10)) {
+            throw std::invalid_argument("Probe duration must be between 1 and 600 seconds");
+        }
+        if (!config.synthetic && (config.host.empty() ||
+            config.host.find_first_not_of("0123456789.") != std::string::npos)) {
+            throw std::invalid_argument("An IPv4 camera address is required");
+        }
+        if (config.detect_people && (config.synthetic || config.test_recording)) {
+            throw std::invalid_argument("AI camera mode and manual/synthetic test triggers must be separate");
+        }
+        std::unique_ptr<PersonStream> analysis;
+        if (config.detect_people) {
+            progress(config, "Memuat dan warmup model person di CUDA...");
+            analysis = std::make_unique<PersonStream>(config.project_root, config.host, config.username, config.password);
+            progress(config, "AI aktif: CUDA / YOLOX-Tiny; menunggu orang pada substream.");
+        }
+        const std::string input = config.synthetic
+            ? "videotestsrc is-live=true pattern=ball ! video/x-raw,width=640,height=360,framerate=15/1 "
+              "! videoconvert ! openh264enc gop-size=30 bitrate=1500000 "
+            : "rtspsrc name=camera latency=150 protocols=tcp tcp-timeout=5000000 "
+              "! application/x-rtp,media=video,encoding-name=H264 ! rtph264depay ";
+        std::string description = input + "! h264parse config-interval=-1 "
+            "! video/x-h264,stream-format=byte-stream,alignment=au ! tee name=video "
+            "video. ! queue max-size-buffers=120 max-size-bytes=0 max-size-time=0 "
+            "! appsink name=packets sync=false max-buffers=120 drop=false ";
+        if (config.preview) {
+            description += "video. ! queue max-size-buffers=2 leaky=downstream "
+                "! d3d11h264dec ! d3d11videosink sync=false";
+        }
+        GError* error = nullptr;
+        Pipeline pipeline{gst_parse_launch(description.c_str(), &error)};
+        if (error || !pipeline.value) {
+            if (error) g_error_free(error);
+            throw std::runtime_error("Media pipeline could not be created; check installed plugins");
+        }
+        ElementPtr sink(gst_bin_get_by_name(GST_BIN(pipeline.value), "packets"));
+        if (!config.synthetic) {
+            ElementPtr source(gst_bin_get_by_name(GST_BIN(pipeline.value), "camera"));
+            const auto location = "rtsp://" + config.host + ":554/" +
+                (config.substream ? "stream2" : "stream1");
+            // Credentials stay in memory as separate properties, never in a URI or launch command.
+            g_object_set(source.get(), "location", location.c_str(), "user-id", config.username.c_str(),
+                         "user-pw", config.password.c_str(), nullptr);
+        }
+        BusPtr bus(gst_element_get_bus(pipeline.value));
+        started = std::chrono::steady_clock::now();
+        if (gst_element_set_state(pipeline.value, GST_STATE_PLAYING) == GST_STATE_CHANGE_FAILURE) {
+            throw std::runtime_error("Media pipeline could not start");
+        }
+        EncodedRing ring(std::chrono::seconds(10), 64 * 1024 * 1024);
+        std::unique_ptr<EventWriter> writer;
+        std::optional<MonoTime> last_keyframe;
+        ConfirmationGate confirmation;
+        EventWindow event(std::chrono::seconds(20));
+        MonoTime next_analysis{};
+        MonoTime last_analysis{};
+        bool attempted_recording = false;
+        while (std::chrono::steady_clock::now() - started < config.duration) {
+            if (config.cancelled && config.cancelled()) { report.cancelled = true; break; }
+            if (GstMessage* message = gst_bus_pop_filtered(bus.get(),
+                static_cast<GstMessageType>(GST_MESSAGE_ERROR | GST_MESSAGE_EOS))) {
+                const bool failed = GST_MESSAGE_TYPE(message) == GST_MESSAGE_ERROR;
+                gst_message_unref(message);
+                if (failed) throw std::runtime_error("Stream failed: check camera connectivity, credentials and H.264 support");
+                break;
+            }
+            GstSample* sample = gst_app_sink_try_pull_sample(GST_APP_SINK(sink.get()), 100 * GST_MSECOND);
+            if (!sample) continue;
+            GstBuffer* buffer = gst_sample_get_buffer(sample);
+            GstCaps* caps = gst_sample_get_caps(sample);
+            gchar* caps_text = gst_caps_to_string(caps);
+            EncodedPacket packet;
+            packet.received = std::chrono::duration_cast<MonoTime>(std::chrono::steady_clock::now() - started);
+            packet.pts = GST_BUFFER_PTS(buffer);
+            packet.dts = GST_BUFFER_DTS(buffer);
+            packet.duration = GST_BUFFER_DURATION(buffer);
+            packet.keyframe = !GST_BUFFER_FLAG_IS_SET(buffer, GST_BUFFER_FLAG_DELTA_UNIT);
+            packet.caps = caps_text;
+            g_free(caps_text);
+            const auto size = gst_buffer_get_size(buffer);
+            auto data = std::make_shared<std::vector<std::byte>>(size);
+            gst_buffer_extract(buffer, 0, data->data(), size);
+            packet.data = data;
+            const auto* structure = gst_caps_get_structure(caps, 0);
+            gst_structure_get_int(structure, "width", &report.width);
+            gst_structure_get_int(structure, "height", &report.height);
+            gst_sample_unref(sample);
+            report.caps = packet.caps;
+            ++report.packets;
+            report.bytes += size;
+            if (packet.keyframe) {
+                ++report.keyframes;
+                if (last_keyframe) {
+                    report.maximum_gop_seconds = std::max(report.maximum_gop_seconds,
+                        std::chrono::duration<double>(packet.received - *last_keyframe).count());
+                }
+                last_keyframe = packet.received;
+            }
+            ring.push(packet);
+            report.ring_bytes = ring.bytes();
+            if (writer) writer->push(packet);
+            bool start_event = false;
+            if (analysis && packet.received >= next_analysis) {
+                next_analysis = packet.received + std::chrono::milliseconds(333);
+                if (const auto result = analysis->poll()) {
+                    last_analysis = packet.received;
+                    ++report.analyzed_frames;
+                    const bool person = !result->people.empty();
+                    if (person) ++report.person_frames;
+                    report.average_inference_ms += (result->inference_ms - report.average_inference_ms) / report.analyzed_frames;
+                    if (confirmation.sample(packet.received, person)) {
+                        ++report.confirmed_frames;
+                        start_event = event.person_seen(packet.received);
+                    }
+                    if (report.analyzed_frames % 15 == 0 || start_event) {
+                        std::ostringstream status;
+                        status << "AI: " << result->people.size() << " orang | " << result->inference_ms
+                               << " ms | " << report.analyzed_frames << " frame dianalisis";
+                        progress(config, status.str());
+                    }
+                } else if (packet.received - last_analysis > std::chrono::seconds(10)) {
+                    throw std::runtime_error("AI substream stopped producing frames");
+                }
+            }
+            const bool manual_start = config.test_recording && !attempted_recording && packet.received >= std::chrono::seconds(6);
+            if (manual_start || start_event) {
+                attempted_recording = true;
+                const auto history = ring.snapshot_from(packet.received - std::chrono::seconds(analysis ? 10 : 4));
+                if (history.empty()) throw std::runtime_error("No keyframe available for recording");
+                std::filesystem::create_directories(config.output);
+                const auto id = std::chrono::duration_cast<std::chrono::microseconds>(
+                    std::chrono::system_clock::now().time_since_epoch()).count();
+                report.recording = config.output / ("probe-event-" + std::to_string(id) + ".mkv");
+                writer = std::make_unique<EventWriter>(report.recording, history.front());
+                for (const auto& previous : history) writer->push(previous);
+                ++report.events;
+                progress(config, analysis ? "Orang terkonfirmasi: rekaman event dimulai, termasuk buffer pre-roll."
+                    : "Pemicu uji manual: buffer sebelum kejadian sedang direkam (bukan deteksi AI).");
+            }
+            if (analysis && event.expire(packet.received) && writer) {
+                report.recorded_packets += writer->packets();
+                writer->finish();
+                writer.reset();
+                progress(config, "Event selesai: 20 detik tanpa konfirmasi person baru.");
+            }
+            if (report.packets == 1 || report.packets % 30 == 0) {
+                std::ostringstream message;
+                message << report.width << 'x' << report.height << " H.264 | " << report.packets
+                        << " paket | " << report.keyframes << " keyframe | buffer " << ring.bytes() / 1024 << " KiB";
+                progress(config, message.str());
+            }
+        }
+        if (writer) {
+            report.stopped_during_event = event.active();
+            report.recorded_packets += writer->packets();
+            writer->finish();
+        }
+        if (report.packets == 0 && !report.cancelled) throw std::runtime_error("No H.264 video received within the probe timeout");
+        if (config.test_recording && !attempted_recording && !report.cancelled) {
+            throw std::runtime_error("Probe ended before the test recording trigger");
+        }
+        if (analysis && report.analyzed_frames == 0 && !report.cancelled) {
+            throw std::runtime_error("No frames analyzed by the person detector");
+        }
+        report.success = !report.cancelled;
+    } catch (const std::exception& error) {
+        report.error = error.what();
+    }
+    report.elapsed_seconds = std::chrono::duration<double>(std::chrono::steady_clock::now() - started).count();
+    return report;
+}
+
+bool validate_recording(const std::filesystem::path& file, bool hardware_decode) {
+    initialize_media();
+    const std::string decode = hardware_decode ? "d3d11h264dec" : "openh264dec";
+    GError* error = nullptr;
+    Pipeline pipeline{gst_parse_launch(("filesrc name=file ! matroskademux ! h264parse ! " +
+        decode + " ! fakesink sync=false").c_str(), &error)};
+    if (error || !pipeline.value) { if (error) g_error_free(error); return false; }
+    ElementPtr source(gst_bin_get_by_name(GST_BIN(pipeline.value), "file"));
+    const auto utf8 = file.u8string();
+    g_object_set(source.get(), "location", reinterpret_cast<const char*>(utf8.c_str()), nullptr);
+    BusPtr bus(gst_element_get_bus(pipeline.value));
+    if (gst_element_set_state(pipeline.value, GST_STATE_PLAYING) == GST_STATE_CHANGE_FAILURE) return false;
+    GstMessage* message = gst_bus_timed_pop_filtered(bus.get(), 15 * GST_SECOND,
+        static_cast<GstMessageType>(GST_MESSAGE_EOS | GST_MESSAGE_ERROR));
+    const bool ok = message && GST_MESSAGE_TYPE(message) == GST_MESSAGE_EOS;
+    if (message) gst_message_unref(message);
+    return ok;
+}
+
+} // namespace opennvr
