@@ -1,0 +1,42 @@
+# Local build outputs and downloaded dependencies
+/build/
+/out/
+/.deps/
+/.local/
+/artifacts/
+/recordings/
+/.vs/
+/.vscode/
+CMakeUserPresets.json
+compile_commands.json
+*.user
+*.log
+
+# Credentials and machine-specific configuration
+.env
+.env.*
+!.env.example
+*.secret
+*.secrets.json
+/config/local.*
+
+# Generated media, model binaries, databases and Python caches
+*.mkv
+*.mp4
+*.avi
+*.onnx
+*.engine
+*.sqlite
+*.sqlite3
+*.sqlite3-*
+*.db
+*.db-*
+__pycache__/
+*.pyc
+/.venv/
+
+# Temporary editor and OS files
+*.tmp
+*.bak
+Thumbs.db
+Desktop.ini
