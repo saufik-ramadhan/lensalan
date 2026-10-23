@@ -126,3 +126,10 @@ Catatan keputusan, perubahan, dan bukti pengujian. Gunakan commit Git sebagai ri
 - Sebelum push, audit final terhadap 11 commit/155 blob historis tidak menemukan secret atau identifier komputer pribadi yang diperiksa. Tidak ada credential, data kamera, video, log, runtime/model atau bundle lokal yang diunggah.
 - GitHub mengonfirmasi visibility PUBLIC serta SHA branch/tag sama dengan lokal. Workflow Core dan Secret scan pada commit publikasi lulus; workflow Core kedua tag milestone juga lulus.
 - Desktop dengan judul LensaLAN dibuka kembali; service monitoring yang sama tetap Running tanpa restart akibat publikasi. Catatan penutupan publikasi ini kembali dipindai sebelum push.
+
+## 2026-10-24 — Perluasan visi produk
+
+- Pengguna ingin mengembangkan LensaLAN lebih luas sebagai produk yang dapat bersaing dengan platform NVR lain. Visi diperluas menjadi NVR native Windows dengan analitik, otomasi dan integrasi modular.
+- Tambahkan PRODUCT_VISION dengan pembeda yang perlu dibuktikan, roadmap R0–R3, gerbang penerimaan, kontrak ekstensi dan metode perbandingan. Prioritas berikut tetap kesehatan/metrik, benchmark, fault test dan soak; kapasitas MVP tetap 12 kamera sampai ada penerimaan berikutnya.
+- PRD menjadi v0.2 dan rencana pengembangan/README ditautkan ke visi baru. Fitur masa depan dan estimasinya dipisahkan dari implementasi yang sudah bekerja; tidak ada perubahan runtime/service atau pembukaan API jaringan pada tahap dokumen ini.
+- Posisi native C++ dijelaskan sebagai kontrol atas resource, GPU dan integrasi Windows. Keunggulan performa belum diklaim tanpa benchmark sebanding, karena platform berbasis Python juga memakai komponen media/inferensi native.

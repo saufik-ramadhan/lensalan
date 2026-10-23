@@ -1,13 +1,15 @@
 # Product Requirements Document — LensaLAN
 
 Tanggal: 23 Oktober 2026  
-Versi: 0.1 — draft untuk review  
+Versi: 0.2 — perluasan arah produk, diperbarui 24 Oktober 2026
 Platform: Windows x64  
 Bahasa antarmuka awal: Bahasa Indonesia
 
 ## 1. Ringkasan produk
 
 LensaLAN adalah aplikasi lokal untuk memonitor maksimal 12 IP camera dan menyimpan klip video ketika komputer host mendeteksi orang. Deteksi berjalan di GPU host, tanpa mengandalkan event AI kamera atau cloud. Pengguna dapat melihat grid kamera, membuka kamera secara fullscreen, mencari event, dan memutar rekaman.
+
+Visi jangka panjang diperluas menjadi platform NVR native Windows dengan analitik dan integrasi yang modular. PRD ini tetap menetapkan batas MVP awal; fase lanjutan dan gerbang penerimaannya dijelaskan pada [visi produk](PRODUCT_VISION.md). Kemampuan roadmap tidak dianggap sudah tersedia atau menambah target kapasitas MVP secara otomatis.
 
 Penerimaan stream, deteksi, serta perekaman dijalankan oleh Windows Service. Aplikasi desktop menjadi antarmuka kontrol dan monitoring. Menutup desktop atau logout tidak menghentikan service; komputer tetap harus menyala dan tidak sleep agar perekaman berlangsung.
 
@@ -16,7 +18,7 @@ Penerimaan stream, deteksi, serta perekaman dijalankan oleh Windows Service. Apl
 | Aspek | Keputusan |
 |---|---|
 | Sistem operasi | Windows |
-| Kapasitas | Maksimal 12 kamera |
+| Kapasitas MVP | Maksimal 12 kamera; perluasan setelah benchmark dan PRD berikutnya |
 | Kamera awal | TP-Link Tapo C520WS 2K QHD Pan/Tilt |
 | Host | Intel Core i5-12400F, RTX 3060 12 GB, RAM DDR4 16 GB |
 | Lokasi jaringan | LAN lokal |
@@ -55,6 +57,8 @@ Nilai berikut adalah usulan awal yang dapat disesuaikan setelah prototipe. Nilai
 6. Mengelola ruang disk otomatis dan menampilkan gangguan perekaman secara jelas.
 
 ### Di luar MVP
+
+Daftar berikut merupakan batas rilis awal. Sebagian menjadi kandidat fase lanjutan pada roadmap produk, dengan persyaratan dan penerimaan terpisah.
 
 - Pengenalan wajah, identitas orang, dan pencarian berdasarkan wajah.
 - Deteksi kendaraan/hewan dan analitik perilaku.

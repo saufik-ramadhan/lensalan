@@ -2,10 +2,13 @@
 
 Aplikasi desktop Windows untuk memonitor maksimal 12 IP camera di LAN dan merekam event ketika host computer mendeteksi orang.
 
+Visi produk: platform NVR native Windows yang berkembang menuju analitik, otomasi dan integrasi modular. Kapasitas serta fitur yang sudah terbukti tetap dibedakan dari [roadmap jangka panjang](docs/PRODUCT_VISION.md).
+
 Status: live grid 1/4/9/12 dan engine hingga 12 kamera sudah diimplementasikan, dengan satu scheduler CUDA bersama, reconnect/writer per kamera, SQLite, retensi, kontrol IPC dan review event. Dua belas sumber sintetis serta render grid telah diuji; validasi kapasitas 12 kamera RTSP nyata dan soak masih terbuka. Ini belum merupakan NVR produksi.
 
 - [Product Requirements Document](docs/PRD.md)
 - [Rencana pengembangan](docs/DEVELOPMENT_PLAN.md)
+- [Visi produk dan roadmap](docs/PRODUCT_VISION.md)
 - [Build dan menjalankan prototipe](docs/BUILD.md)
 - [Catatan pengembangan](docs/DEVELOPMENT_LOG.md)
 - [Hasil validasi M0](docs/validation/M0_FEASIBILITY.md)

@@ -2,7 +2,7 @@
 
 Tanggal: 23 Oktober 2026  
 Status: pelaksanaan bertahap; fondasi M0/M1 dan sebagian M2–M4 sudah diimplementasikan (pembaruan 24 Oktober 2026)
-Acuan kebutuhan: [PRD v0.1](PRD.md)
+Acuan kebutuhan: [PRD v0.2](PRD.md); arah jangka panjang: [visi produk dan roadmap](PRODUCT_VISION.md)
 
 ## 1. Strategi pengerjaan
 
@@ -10,9 +10,13 @@ Mulai dari pembuktian media, inferensi, dan rekaman pada satu kamera nyata. Perl
 
 Pengembangan dilakukan bertahap dengan artefak dan syarat lulus yang dapat diperiksa. Prototipe bukan jaminan produk; setiap target yang tidak tercapai harus memicu pengukuran dan penyesuaian desain, bukan disembunyikan oleh UI.
 
+Pembaruan 24 Oktober: LensaLAN diarahkan menuju platform NVR native Windows yang lebih luas. Milestone M0–M6 di bawah tetap baseline MVP; fase integrasi/SDK/analitik lanjutan berada pada roadmap R0–R3. Prioritas terdekat adalah panel kesehatan/metrik, benchmark, fault test dan soak, lalu penyelesaian alur produk harian.
+
 ## 2. Estimasi dan dependensi
 
 Estimasi awal untuk satu pengembang penuh waktu yang berpengalaman dengan C++, Windows, dan multimedia: **27–42 hari kerja, sekitar 6–9 minggu**. Ini perkiraan usaha, bukan komitmen tanggal. Belum termasuk waktu menunggu perangkat, dataset lapangan tambahan, atau perubahan scope.
+
+Estimasi tersebut adalah baseline MVP sebelum perluasan visi. Fase lanjutan pada PRODUCT_VISION belum memiliki estimasi atau tanggal komitmen.
 
 | Tahap | Estimasi | Bergantung pada | Hasil utama |
 |---|---:|---|---|
