@@ -2,9 +2,9 @@
 
 ## Status dan batas verifikasi
 
-Native entry point SCM, provisioning DPAPI, ACL validation, serta installer sudah tersedia. Bundle engine diuji sebagai proses pengguna dengan PATH Windows tanpa MSYS2: kamera dan CUDA berhasil berjalan. Hal itu belum membuktikan GPU dalam Session 0 atau operasi setelah logout/reboot.
+Pada 24 Oktober 2026 pengguna menyelesaikan instalasi elevated. Pemeriksaan SCM/proses mengonfirmasi OpenNVR berjalan sebagai LocalService di Session 0; API menunjukkan `service=true`, `state=running`, `streamReady=true`, `aiReady=true`, dan `storageReady=true`. Startup kamera/CUDA dalam service sudah terverifikasi. Event person positif dalam service, logout/reboot dan soak 24 jam belum diuji.
 
-Sesi pengembangan tidak elevated. Windows memerlukan hak Administrator untuk registrasi service, penulisan Program Files dan pengaturan ACL ProgramData. Installer dapat direview dan diuji dengan `-DryRun` sebelum pemasangan.
+Sesi agen pengembangan tidak elevated; pemasangan dilakukan pengguna dari PowerShell Administrator. Windows memerlukan hak Administrator untuk registrasi service, penulisan Program Files dan pengaturan ACL ProgramData. Installer dapat direview dan diuji dengan `-DryRun` sebelum pemasangan.
 
 ## Menyiapkan bundle
 

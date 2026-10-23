@@ -73,3 +73,11 @@ Catatan keputusan, perubahan, dan bukti pengujian. Gunakan commit Git sebagai ri
 - Transcript installer kini ditutup melalui `finally`, termasuk ketika terjadi error. Error CIM menyertakan return code untuk troubleshooting.
 - Uji regresi baru `tools/test_service_install.ps1` lulus di PowerShell 5.1.26100.9711 dan 7.6.5: Create/Change menjaga command line berkutip; parameter cocok dengan schema CIM lokal; error registrasi diteruskan; resume tidak mengubah fixture dan menolak operator salah, engine berbeda atau file provisioning hilang. Operasi CIM yang mengubah service dimock, bukan dijalankan.
 - `-Resume -DryRun` dengan bundle `artifacts/engine-bundle-ps51-fix-20261024/` terhadap instalasi parsial aktual lulus di kedua shell. Tidak ada penulisan ulang kredensial/config atau registrasi service dari sesi non-admin ini. Langkah berikutnya: pengguna menjalankan ulang installer dengan `-Resume` dari PowerShell Administrator, lalu verifikasi status engine/CUDA di Session 0.
+
+## 2026-10-24 — Startup service dan CUDA Session 0 lulus
+
+- Pengguna menyelesaikan instalasi elevated dan membagikan status `service=true`, `state=running`, `streamReady=true`, `aiReady=true`, `storageReady=true`, PID 28128; 29 frame AI telah dianalisis pada attempt pertama.
+- Verifikasi read-only mengonfirmasi SCM Running, akun `NT AUTHORITY\LocalService`, proses PID 28128 di Session 0, serta command line executable/root/data dengan kutip yang utuh. Pembacaan API berikutnya menunjukkan 100 frame AI dianalisis, 749 paket dan AI tetap siap pada attempt pertama.
+- Konfigurasi SCM dikonfirmasi: automatic delayed start, recovery restart 5/15/60 detik, reset period 86.400 detik dan non-crash failure recovery aktif. Ini memverifikasi konfigurasi; perilaku setelah crash/reboot belum diuji.
+- Tidak ada person pada kedua snapshot (`personFrames=0`, `recording=false`, storage 0 byte); hasil startup ini belum memvalidasi event positif atau video keluaran service. Pengukuran inferensi singkat juga bukan benchmark 12 kamera.
+- README, panduan service/build dan acceptance M1 diperbarui. Langkah berikutnya: uji orang melintas agar service membuat event, tunggu post-roll dan verifikasi playback. Logout/reboot dijadwalkan bersama pengguna; soak 24 jam dan multi-kamera tetap belum diterima.

@@ -2,7 +2,7 @@
 
 ## Status
 
-Implementasi M1 menambahkan engine satu kamera yang terpisah dari desktop, SQLite, reconnect, segmentasi dan retensi. Entry point Windows Service dan installer runtime tersedia; verifikasi Session 0 memerlukan pemasangan elevated. Grid 12 kamera dan ONVIF client belum tersedia. Sesi diagnostik AI tetap dibatasi 60 detik; engine tidak memiliki batas itu.
+Implementasi M1 menambahkan engine satu kamera yang terpisah dari desktop, SQLite, reconnect, segmentasi dan retensi. Service LocalService sudah dipasang pengguna; startup kamera/CUDA di Session 0 terverifikasi pada 24 Oktober 2026. Grid 12 kamera dan ONVIF client belum tersedia. Sesi diagnostik AI tetap dibatasi 60 detik; engine tidak memiliki batas itu.
 
 ## Toolchain yang diuji
 
@@ -123,6 +123,6 @@ Uji ini memeriksa argumen registrasi/update berkutip dan penanganan error melalu
 - Kegagalan AI/GPU ditampilkan; tidak beralih diam-diam ke CPU atau motion detection.
 - Sesi yang berhenti saat event aktif akan memfinalisasi klip pendek dan menandai `stoppedDuringEvent` pada report; post-roll penuh tidak dijamin pada penghentian sesi.
 - Recovery menandai file yang belum final sebagai partial dan file hilang sebagai missing. File `.part` tidak otomatis dipromosikan menjadi rekaman yang dianggap utuh.
-- GPU dalam service/logout, pembacaan 12 kamera, akurasi malam/jauh dan soak test 24 jam belum diverifikasi.
+- Startup GPU dalam service sudah terverifikasi; event positif pada service, logout/reboot, pembacaan 12 kamera, akurasi malam/jauh dan soak test 24 jam belum diverifikasi.
 
 Jangan menafsirkan hasil satu gambar atau satu kamera sebagai pencapaian NFR pada PRD.
