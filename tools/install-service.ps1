@@ -73,6 +73,10 @@ function Set-OpenNvrDirectoryAcl([string]$Path, [bool]$Data, [bool]$Config = $fa
             [Security.AccessControl.AccessControlType]::Allow))
     }
     if (Test-Path -LiteralPath $Path) { Set-Acl -LiteralPath $Path -AclObject $taskAcl }
+    elseif ($PSVersionTable.PSEdition -eq 'Desktop') {
+        # .NET Framework exposes this overload directly; the extension type is absent.
+        [IO.DirectoryInfo]::new($Path).Create($taskAcl)
+    }
     else { [IO.FileSystemAclExtensions]::Create([IO.DirectoryInfo]::new($Path),$taskAcl) }
 }
 Set-OpenNvrDirectoryAcl $taskInstallRoot $false

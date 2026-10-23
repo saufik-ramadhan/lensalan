@@ -56,10 +56,15 @@ foreach ($taskName in @('onnxruntime.dll','onnxruntime_providers_shared.dll','on
 }
 Get-ChildItem -LiteralPath $taskOrt -File | Where-Object { $_.Name -match 'LICENSE|NOTICE|VERSION' } | ForEach-Object { Copy-Item -LiteralPath $_.FullName -Destination $taskOrtTarget }
 $taskCudaRoot = Join-Path $taskProjectRoot '.deps\cuda'
+$taskCudaPrefix = [IO.Path]::GetFullPath($taskCudaRoot).TrimEnd([IO.Path]::DirectorySeparatorChar) + [IO.Path]::DirectorySeparatorChar
 foreach ($taskPackage in Get-ChildItem -LiteralPath $taskCudaRoot -Directory) {
     $taskFiles = Get-ChildItem -LiteralPath $taskPackage.FullName -Recurse -File | Where-Object { $_.Extension -eq '.dll' -or $_.Name -match 'LICENSE|NOTICE|METADATA' }
     foreach ($taskFile in $taskFiles) {
-        $taskRelative = [IO.Path]::GetRelativePath($taskCudaRoot, $taskFile.FullName)
+        # Windows PowerShell 5.1 uses .NET Framework, which has no Path.GetRelativePath.
+        if (-not $taskFile.FullName.StartsWith($taskCudaPrefix, [StringComparison]::OrdinalIgnoreCase)) {
+            throw "CUDA runtime file is outside the dependency directory: $($taskFile.FullName)"
+        }
+        $taskRelative = $taskFile.FullName.Substring($taskCudaPrefix.Length)
         $taskDestination = Join-Path $taskTarget ('.deps\cuda\' + $taskRelative)
         New-Item -ItemType Directory -Path (Split-Path -Parent $taskDestination) -Force | Out-Null
         Copy-Item -LiteralPath $taskFile.FullName -Destination $taskDestination

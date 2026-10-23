@@ -10,6 +10,8 @@ Sesi pengembangan tidak elevated. Windows memerlukan hak Administrator untuk reg
 
 Dari root proyek, setelah build dan `ctest` lulus:
 
+Skrip packaging dan installer mendukung Windows PowerShell 5.1 bawaan Windows maupun PowerShell 7. Packaging tidak memerlukan hak Administrator; pemasangan service memerlukannya.
+
 ```powershell
 .\tools\package-engine.ps1
 ```

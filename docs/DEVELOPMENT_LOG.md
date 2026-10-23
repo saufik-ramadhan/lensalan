@@ -55,3 +55,12 @@ Catatan keputusan, perubahan, dan bukti pengujian. Gunakan commit Git sebagai ri
 - Desktop Monitoring & Event dibuka, dan engine kamera nyata dijalankan sebagai proses pengguna terpisah. Status terakhir: `running`, `streamReady=true`, `aiReady=true`, `storageReady=true`, `service=false`.
 - Engine ini terus berjalan setelah desktop ditutup. Operator dapat menggunakan Jeda deteksi/Hentikan engine pengguna untuk mengontrolnya. Belum ada autostart setelah login atau jaminan bertahan setelah logout.
 - Bundle final: `artifacts/engine-bundle-20261023-233840/`; panduan Administrator ada pada `SERVICE.md`. Tidak ada Windows Service/folder Program Files/ProgramData yang dibuat oleh sesi non-admin ini.
+
+## 2026-10-24 — Kompatibilitas Windows PowerShell 5.1
+
+- Pengguna menemukan kegagalan packaging pada `Path.GetRelativePath`, API yang tidak tersedia di .NET Framework milik Windows PowerShell 5.1. Pengujian sebelumnya menggunakan PowerShell 7 sehingga masalah ini terlewat.
+- Packaging kini menghitung path relatif dari prefix direktori CUDA yang telah dinormalisasi dan diperiksa batasnya. Bundle lama/hasil percobaan yang belum selesai tetap tidak ditimpa atau dihapus.
+- Installer juga diperbaiki: pembuatan direktori dengan ACL atomik menggunakan `DirectoryInfo.Create(DirectorySecurity)` di PowerShell 5.1 dan `FileSystemAclExtensions.Create` di PowerShell 7. Proteksi ACL tetap sama.
+- Packaging penuh berhasil di Windows PowerShell 5.1.26100.9711 dan PowerShell 7.6.5, masing-masing dengan 186 DLL runtime dan 240 plugin GStreamer. Bundle: `artifacts/engine-bundle-ps51-fix-20261024/` dan `artifacts/engine-bundle-ps7-fix-20261024/`.
+- Di kedua shell, pemeriksaan parsing seluruh skrip PowerShell, pembuatan direktori uji dengan ACL terproteksi, hash engine/model serta 22 file runtime/notice CUDA, dan installer `-DryRun` lulus. Bundle tidak berisi credential/database/video kamera. Pemeriksaan ACL memakai direktori uji dengan SID pengguna saat ini, bukan provisioning direktori service elevated.
+- Tidak ada instalasi service atau perubahan folder sistem pada perbaikan ini. Verifikasi Session 0, logout/reboot dan soak tetap tertunda.
