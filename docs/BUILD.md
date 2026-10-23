@@ -123,6 +123,6 @@ Uji ini memeriksa argumen registrasi/update berkutip dan penanganan error melalu
 - Kegagalan AI/GPU ditampilkan; tidak beralih diam-diam ke CPU atau motion detection.
 - Sesi yang berhenti saat event aktif akan memfinalisasi klip pendek dan menandai `stoppedDuringEvent` pada report; post-roll penuh tidak dijamin pada penghentian sesi.
 - Recovery menandai file yang belum final sebagai partial dan file hilang sebagai missing. File `.part` tidak otomatis dipromosikan menjadi rekaman yang dianggap utuh.
-- Startup GPU dalam service sudah terverifikasi; event positif pada service, logout/reboot, pembacaan 12 kamera, akurasi malam/jauh dan soak test 24 jam belum diverifikasi.
+- Startup GPU dan event person complete dalam service sudah terverifikasi; logout/reboot, pembacaan 12 kamera, akurasi malam/jauh dan soak test 24 jam belum diverifikasi.
 
 Jangan menafsirkan hasil satu gambar atau satu kamera sebagai pencapaian NFR pada PRD.

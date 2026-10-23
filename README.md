@@ -18,4 +18,4 @@ Pada komputer dengan service yang sudah terpasang, jalankan `OpenNVR.cmd`; deskt
 
 Data engine development berada di `.local/engine/`, termasuk database, credential terenkripsi bila diprovision, dan rekaman. Default retensi adalah 14 hari/100 GB, dengan reserve ruang disk. Klip M0 pada `.local/recordings/` tetap terpisah dan tidak dibersihkan oleh retensi engine.
 
-Service LocalService telah dipasang pengguna dan startup kamera/CUDA di Session 0 berhasil. Event positif dalam service, logout/reboot dan soak 24 jam masih perlu diverifikasi. Grid/scheduler 12 kamera, zona deteksi, ekspor klip, serta installer desktop lengkap masih tahap berikutnya.
+Service LocalService telah dipasang pengguna; startup kamera/CUDA dan event person complete di Session 0 berhasil. Logout/reboot dan soak 24 jam masih perlu diverifikasi. Grid/scheduler 12 kamera, zona deteksi, ekspor klip, serta installer desktop lengkap masih tahap berikutnya.

@@ -2,7 +2,7 @@
 
 ## Status dan batas verifikasi
 
-Pada 24 Oktober 2026 pengguna menyelesaikan instalasi elevated. Pemeriksaan SCM/proses mengonfirmasi OpenNVR berjalan sebagai LocalService di Session 0; API menunjukkan `service=true`, `state=running`, `streamReady=true`, `aiReady=true`, dan `storageReady=true`. Startup kamera/CUDA dalam service sudah terverifikasi. Event person positif dalam service, logout/reboot dan soak 24 jam belum diuji.
+Pada 24 Oktober 2026 pengguna menyelesaikan instalasi elevated. Pemeriksaan SCM/proses mengonfirmasi OpenNVR berjalan sebagai LocalService di Session 0; API menunjukkan `service=true`, `state=running`, `streamReady=true`, `aiReady=true`, dan `storageReady=true`. Startup kamera/CUDA dan event person dalam service sudah terverifikasi: satu event complete 36,75 detik, selesai karena post-roll. Logout/reboot dan soak 24 jam belum diuji.
 
 Sesi agen pengembangan tidak elevated; pemasangan dilakukan pengguna dari PowerShell Administrator. Windows memerlukan hak Administrator untuk registrasi service, penulisan Program Files dan pengaturan ACL ProgramData. Installer dapat direview dan diuji dengan `-DryRun` sebelum pemasangan.
 

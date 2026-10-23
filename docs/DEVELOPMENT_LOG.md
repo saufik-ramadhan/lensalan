@@ -81,3 +81,10 @@ Catatan keputusan, perubahan, dan bukti pengujian. Gunakan commit Git sebagai ri
 - Konfigurasi SCM dikonfirmasi: automatic delayed start, recovery restart 5/15/60 detik, reset period 86.400 detik dan non-crash failure recovery aktif. Ini memverifikasi konfigurasi; perilaku setelah crash/reboot belum diuji.
 - Tidak ada person pada kedua snapshot (`personFrames=0`, `recording=false`, storage 0 byte); hasil startup ini belum memvalidasi event positif atau video keluaran service. Pengukuran inferensi singkat juga bukan benchmark 12 kamera.
 - README, panduan service/build dan acceptance M1 diperbarui. Langkah berikutnya: uji orang melintas agar service membuat event, tunggu post-roll dan verifikasi playback. Logout/reboot dijadwalkan bersama pengguna; soak 24 jam dan multi-kamera tetap belum diterima.
+
+## 2026-10-24 — Event person pada service berhasil
+
+- Pengguna mengonfirmasi uji sudah berfungsi. Pemeriksaan read-only melalui IPC menunjukkan service tetap running, AI/stream/storage siap pada attempt pertama, 1.801 frame dianalisis dan 14 frame person.
+- Indeks service berisi satu event kamera-1 berstatus `complete`, satu segmen, durasi 36,75 detik dan ukuran 5.715.387 byte. Alasan finalisasi `post_roll_elapsed`; status saat pemeriksaan `recording=false` karena event telah selesai.
+- Hasil ini menambah bukti event positif dalam LocalService/Session 0. Tidak ada perubahan konfigurasi, penghentian service atau pembukaan video privat oleh agen pada pemeriksaan ini.
+- Langkah penerimaan yang masih tersisa: logout/login dan reboot bersama pengguna, soak 24 jam serta recovery service/jaringan aktual. Pengembangan berikutnya pada rencana produk adalah live grid dan scheduler multi-kamera bertahap; belum diimplementasikan pada checkpoint ini.

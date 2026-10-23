@@ -2,7 +2,7 @@
 
 Tanggal: 23 Oktober 2026; diperbarui 24 Oktober 2026
 
-Status: engine proses pengguna serta startup kamera/CUDA sebagai LocalService di Session 0 terverifikasi; event positif dalam service dan logout/reboot masih perlu diuji
+Status: engine proses pengguna, startup kamera/CUDA serta event person complete sebagai LocalService di Session 0 terverifikasi; logout/reboot masih perlu diuji
 
 ## Implementasi
 
@@ -25,6 +25,7 @@ Status: engine proses pengguna serta startup kamera/CUDA sebagai LocalService di
 | Bundle mandiri | 186 DLL runtime dan 240 plugin dikemas; tanpa MSYS2 pada PATH, retest final kamera/CUDA pulih sekitar 2.594 ms pada attempt kedua |
 | Installer | `-DryRun` lulus; tidak mengubah service, folder sistem, ACL atau credential |
 | Service aktual (24 Oktober) | Pengguna menyelesaikan instalasi elevated; SCM Running, LocalService, PID 28128 di Session 0; API `service=true`, `state=running`, stream/AI/storage siap. Frame AI bertambah dari 29 pada laporan pengguna menjadi 100 saat pemeriksaan berikutnya |
+| Event person pada service (24 Oktober) | Pengguna mengonfirmasi uji berfungsi; API mencatat 14 frame person dan satu event `complete`, satu segmen, 36,75 detik, 5.715.387 byte, finalisasi `post_roll_elapsed`; service tetap running pada attempt pertama |
 | Konfigurasi SCM aktual | Delayed automatic startup; recovery restart 5/15/60 detik dan non-crash failure flag aktif. Perilaku setelah reboot/crash service belum diuji |
 | UI | QML smoke test berhasil, daftar event dari IPC tampil, tidak ada error QML; engine tetap dapat menerima shutdown setelah UI keluar |
 | UI playback end-to-end | Desktop meminta manifest event melalui IPC, memutar dua segmen sintetis di jendela D3D11, dan melaporkan `Playback selesai` tanpa error |
@@ -34,12 +35,11 @@ Hasil CTest awal: 5/5 kelompok lulus dalam sekitar 30 detik. Waktu recovery adal
 
 ## Belum diterima
 
-- Event person positif dan playback rekaman yang dibuat service di Session 0; pada verifikasi startup `personFrames=0`, `recording=false`, `storageBytes=0`.
 - Logout/login dan reboot host, soak 24 jam, serta kondisi disk/jaringan lapangan jangka panjang.
 - Akurasi person siang/malam/jauh dan dataset acceptance PRD.
 - Multi-kamera/scheduler bersama, live grid QML, editor zona, seek global, ekspor dan installer desktop.
 - Pemulihan kontainer `.part` menjadi video utuh; file semacam itu ditandai sebagai partial dan tidak diklaim sehat.
 
-M1 ini belum merupakan penerimaan MVP penuh. Startup CUDA dalam service telah lulus; hasil ini belum membuktikan seluruh lifecycle rekaman atau operasi setelah logout/reboot. Laporan ini harus diperbarui setelah pengujian berikutnya, tanpa menimpa bukti M0.
+M1 ini belum merupakan penerimaan MVP penuh. Startup CUDA dan event person complete dalam service telah lulus; hasil ini belum membuktikan seluruh lifecycle rekaman atau operasi setelah logout/reboot. Pemeriksaan event service oleh agen menggunakan metadata IPC; uji otomatis playback sebelumnya memakai media sintetis. Laporan ini harus diperbarui setelah pengujian berikutnya, tanpa menimpa bukti M0.
 
 Pada handoff 23 Oktober, engine kamera nyata berjalan sebagai proses pengguna dengan `service=false`. Commit implementasi: `ac9c6cc`; tag: `m1-user-engine`. Pada checkpoint 24 Oktober, service terpasang dan berjalan dengan `service=true` setelah perbaikan installer `9eb7522`.
