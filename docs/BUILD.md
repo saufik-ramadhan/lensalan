@@ -107,6 +107,14 @@ Uji `test` memakai media sintetis dan direktori build terisolasi. Uji kamera nya
 
 Panduan deployment service ada di [SERVICE.md](SERVICE.md).
 
+Uji regresi installer dapat dijalankan tanpa Administrator di Windows PowerShell 5.1 maupun PowerShell 7:
+
+```powershell
+.\tools\test_service_install.ps1
+```
+
+Uji ini memeriksa argumen registrasi/update berkutip dan penanganan error melalui CIM mock yang dicocokkan dengan schema `Win32_Service` lokal, serta validasi resume pada fixture build terisolasi. Tidak mendaftarkan atau mengubah service Windows; pemasangan elevated tetap perlu diverifikasi terpisah.
+
 ## Batas implementasi
 
 - Satu kamera per sesi. Belum ada scheduler inferensi bersama 12 kamera.

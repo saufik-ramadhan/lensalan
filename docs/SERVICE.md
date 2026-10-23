@@ -36,6 +36,16 @@ Pastikan Camera Account telah tersimpan melalui desktop. Hentikan engine penggun
 .\tools\install-service.ps1 -PackageRoot .\artifacts\engine-bundle-<timestamp>
 ```
 
+Jika provisioning berhasil tetapi registrasi service gagal, gunakan bundle yang sama dan `-Resume`. Opsi ini memvalidasi owner/ACL, reparse point, file provisioning, hash engine dan SID operator, lalu melanjutkan registrasi/start tanpa menyalin ulang runtime atau menulis ulang credential/settings. Tidak perlu menghapus direktori instalasi atau data.
+
+```powershell
+.\tools\install-service.ps1 -PackageRoot .\artifacts\engine-bundle-<timestamp> -Resume -DryRun
+# Di PowerShell Administrator:
+.\tools\install-service.ps1 -PackageRoot .\artifacts\engine-bundle-<timestamp> -Resume
+```
+
+Registrasi dan pembaruan command line service menggunakan `Win32_Service` melalui CIM agar kutip pada path `Program Files` tetap utuh di PowerShell 5.1 maupun 7. `sc.exe` dipakai untuk delayed startup dan recovery, dengan argumen yang tidak mengandung kutip bersarang. Transcript ditutup juga ketika instalasi gagal.
+
 Default:
 
 | Item | Nilai |
