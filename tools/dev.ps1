@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('build', 'test', 'run', 'probe-main', 'probe-sub', 'detect', 'ai-test', 'capabilities')]
+    [ValidateSet('build', 'test', 'run', 'probe-main', 'probe-sub', 'detect', 'ai-test', 'capabilities', 'engine', 'engine-status', 'engine-stop', 'camera-reconnect-test', 'package-engine')]
     [string]$Action = 'build',
     [string]$MsysRoot = 'C:\msys64'
 )
@@ -30,6 +30,15 @@ try {
             & (Join-Path $taskProjectRoot 'OpenNVR.cmd')
         }
         'capabilities' { & '.\build\dev\opennvr_probe.exe' --capabilities }
+        'engine' {
+            $taskEngineDirectory = Join-Path $taskProjectRoot '.local\engine'
+            New-Item -ItemType Directory -Path $taskEngineDirectory -Force | Out-Null
+            Start-Process -FilePath (Join-Path $taskProjectRoot 'build\dev\opennvr_engine.exe') -ArgumentList @('--console','--data','.local/engine') -WorkingDirectory $taskProjectRoot -WindowStyle Hidden -RedirectStandardError (Join-Path $taskEngineDirectory 'engine-stderr.log')
+        }
+        'engine-status' { & '.\build\dev\opennvr_engine.exe' --request status --data '.local/engine' }
+        'engine-stop' { & '.\build\dev\opennvr_engine.exe' --request shutdown --data '.local/engine' }
+        'camera-reconnect-test' { & python tools/test_camera_reconnect.py --engine build/dev/opennvr_engine.exe --root .; if ($LASTEXITCODE -ne 0) { throw 'Camera reconnect validation failed.' } }
+        'package-engine' { & (Join-Path $PSScriptRoot 'package-engine.ps1') -MsysRoot $MsysRoot }
         'ai-test' {
             $taskAiProcess = Start-Process -FilePath (Join-Path $taskProjectRoot 'build\dev\opennvr.exe') -ArgumentList '--ai-self-test' -WorkingDirectory $taskProjectRoot -WindowStyle Hidden -Wait -PassThru
             Get-Content -LiteralPath '.local\ai-selftest.json' -Raw

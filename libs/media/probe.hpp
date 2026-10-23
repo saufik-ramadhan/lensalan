@@ -1,5 +1,7 @@
 #pragma once
 
+#include "domain/recording.hpp"
+
 #include <chrono>
 #include <filesystem>
 #include <functional>
@@ -14,6 +16,11 @@ struct ProbeConfig {
     bool preview = false;
     bool test_recording = false; // Explicit manual/synthetic trigger; never presented as AI.
     bool detect_people = false;
+    bool continuous = false;
+    std::string camera_id{"camera-1"};
+    std::chrono::seconds pre_roll{10};
+    std::chrono::seconds post_roll{20};
+    std::chrono::seconds segment_duration{60};
     std::filesystem::path project_root;
     std::string host;
     std::string username;
@@ -22,6 +29,9 @@ struct ProbeConfig {
     std::filesystem::path output{".local/recordings"};
     std::function<bool()> cancelled;
     std::function<void(const std::string&)> progress;
+    std::function<void(const RecordingUpdate&)> recording_update;
+    std::function<void(const struct ProbeReport&)> heartbeat;
+    std::function<bool()> storage_ready;
 };
 
 struct ProbeReport {
@@ -51,5 +61,6 @@ void initialize_media();
 std::vector<std::string> media_capabilities();
 ProbeReport run_probe(const ProbeConfig& config);
 bool validate_recording(const std::filesystem::path& file, bool hardware_decode);
+bool play_recordings(const std::vector<std::filesystem::path>& files, const std::function<bool()>& cancelled);
 
 } // namespace opennvr

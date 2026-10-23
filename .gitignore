@@ -22,6 +22,7 @@ compile_commands.json
 
 # Generated media, model binaries, databases and Python caches
 *.mkv
+*.mkv.part
 *.mp4
 *.avi
 *.onnx
@@ -31,6 +32,10 @@ compile_commands.json
 *.sqlite3-*
 *.db
 *.db-*
+engine.lock
+engine.json
+camera.json
+gstreamer-registry.bin
 __pycache__/
 *.pyc
 /.venv/

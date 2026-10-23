@@ -8,6 +8,7 @@ int main(int argc, char** argv) {
     config.progress = [](const auto& message) { std::cout << message << '\n'; };
     bool self_test = false;
     bool hardware = false;
+    std::filesystem::path validate;
     for (int i = 1; i < argc; ++i) {
         const std::string_view arg(argv[i]);
         if (arg == "--capabilities") {
@@ -17,12 +18,14 @@ int main(int argc, char** argv) {
         if (arg == "--self-test") { self_test = true; config.test_recording = true; }
         else if (arg == "--hardware") hardware = true;
         else if (arg == "--preview") config.preview = true;
+        else if (arg == "--validate" && i + 1 < argc) validate = argv[++i];
         else if (arg == "--output" && i + 1 < argc) config.output = argv[++i];
         else {
             std::cerr << "Usage: opennvr_probe --capabilities | --self-test [--hardware] [--preview] [--output DIR]\n";
             return 2;
         }
     }
+    if (!validate.empty()) return opennvr::validate_recording(validate, hardware) ? 0 : 1;
     if (!self_test) {
         std::cout << "Use --self-test to generate a synthetic H.264 event clip, or --capabilities.\n"
                      "Camera credentials are entered through the OpenNVR desktop console.\n";

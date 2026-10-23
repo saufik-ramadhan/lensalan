@@ -101,6 +101,36 @@ int main(int argc, char** argv) {
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreationFailed,
                      &app, [] { QCoreApplication::exit(1); }, Qt::QueuedConnection);
     engine.loadFromModule("OpenNVR", "Main");
+    if (app.arguments().contains("--ui-playback-test")) {
+        auto* timer = new QTimer(&app);
+        timer->setInterval(100);
+        auto stage = std::make_shared<int>(0);
+        const auto began = std::chrono::steady_clock::now();
+        QObject::connect(timer, &QTimer::timeout, &app, [&, stage, began] {
+            if (*stage == 0 && backend.engineConnected() && !backend.events().isEmpty()) {
+                for (const auto& value : backend.events()) {
+                    const auto event = value.toMap();
+                    if (event["status"].toString() == "complete") {
+                        backend.playEvent(event["id"].toString());
+                        *stage = 1;
+                        break;
+                    }
+                }
+            } else if (*stage == 1 && backend.busy()) {
+                *stage = 2;
+            } else if (*stage == 2 && !backend.busy()) {
+                const bool success = backend.status() == "Playback selesai";
+                QSaveFile report(".local/ui-playback-validation.json");
+                if (report.open(QIODevice::WriteOnly)) {
+                    report.write(QJsonDocument(QJsonObject{{"success",success},{"status",backend.status()}}).toJson());
+                    report.commit();
+                }
+                app.exit(success ? 0 : 2);
+            }
+            if (std::chrono::steady_clock::now() - began > std::chrono::seconds(25)) { backend.stop(); app.exit(2); }
+        });
+        timer->start();
+    }
     if (app.arguments().contains("--smoke-test")) {
         QTimer::singleShot(1000, &app, [&] {
             if (engine.rootObjects().isEmpty()) { app.exit(2); return; }

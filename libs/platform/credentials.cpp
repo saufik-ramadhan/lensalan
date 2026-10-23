@@ -48,19 +48,20 @@ CameraCredential load_camera_credential(const QString& file) {
     return value;
 }
 
-void save_camera_credential(const QString& file, const CameraCredential& credential) {
+void save_camera_credential(const QString& file, const CameraCredential& credential, bool machine_scope) {
 #ifdef _WIN32
     auto plaintext = credential.password.toUtf8();
     DATA_BLOB input{static_cast<DWORD>(plaintext.size()), reinterpret_cast<BYTE*>(plaintext.data())};
     DATA_BLOB output{};
     const BOOL ok = CryptProtectData(&input, L"OpenNVR development camera", nullptr, nullptr, nullptr,
-                                    CRYPTPROTECT_UI_FORBIDDEN, &output);
+                                    CRYPTPROTECT_UI_FORBIDDEN | (machine_scope ? CRYPTPROTECT_LOCAL_MACHINE : 0), &output);
     SecureZeroMemory(plaintext.data(), plaintext.size());
     if (!ok) throw std::runtime_error("Windows tidak dapat melindungi credential.");
     const auto encrypted = QByteArray(reinterpret_cast<const char*>(output.pbData), output.cbData).toBase64();
     LocalFree(output.pbData);
     QJsonObject object{{"host", credential.host}, {"username", credential.username},
-                       {"passwordDpapi", QString::fromLatin1(encrypted)}};
+                       {"passwordDpapi", QString::fromLatin1(encrypted)},
+                       {"scope", machine_scope ? "machine" : "current-user"}};
     if (!QDir().mkpath(QFileInfo(file).absolutePath())) {
         throw std::runtime_error("Folder konfigurasi tidak dapat dibuat.");
     }

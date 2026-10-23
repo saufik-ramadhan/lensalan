@@ -14,6 +14,8 @@
 #include <optional>
 #include <sstream>
 #include <stdexcept>
+#include <atomic>
+#include <random>
 
 namespace opennvr {
 namespace {
@@ -56,10 +58,61 @@ ProbeReport run_probe(const ProbeConfig& config) {
     initialize_media();
     ProbeReport report;
     auto started = std::chrono::steady_clock::now();
+    std::unique_ptr<EventWriter> writer;
+    RecordingUpdate current;
+    current.camera_id = config.camera_id;
+    bool event_open = false;
+    std::int64_t session_utc_ms = 0;
+    MonoTime segment_start{};
+    auto notify = [&](RecordingStage stage) {
+        current.stage = stage;
+        if (config.recording_update) config.recording_update(current);
+    };
+    auto finish_segment = [&] {
+        if (!writer) return;
+        report.recorded_packets += writer->packets();
+        try {
+            writer->finish();
+            writer.reset();
+            auto partial = current.file; partial += ".part";
+            std::filesystem::rename(partial, current.file);
+            current.status = "complete";
+            notify(RecordingStage::segment_finished);
+        } catch (...) {
+            writer.reset();
+            current.status = "partial";
+            try { notify(RecordingStage::segment_finished); } catch (...) {}
+            throw;
+        }
+    };
+    auto finish_event = [&](const std::string& status, const std::string& reason) {
+        if (!event_open) return;
+        finish_segment();
+        current.status = status;
+        current.reason = reason;
+        notify(RecordingStage::event_finished);
+        event_open = false;
+    };
+    auto start_segment = [&](const EncodedPacket& first) {
+        current.start_utc_ms = session_utc_ms + std::chrono::duration_cast<std::chrono::milliseconds>(first.received).count();
+        current.end_utc_ms = current.start_utc_ms;
+        current.file = std::filesystem::absolute(config.output / current.event_id /
+            ("segment-" + std::to_string(current.segment) + ".mkv"));
+        std::filesystem::create_directories(current.file.parent_path());
+        current.status = "writing";
+        notify(RecordingStage::segment_started);
+        auto partial = current.file; partial += ".part";
+        writer = std::make_unique<EventWriter>(partial, first);
+        segment_start = first.received;
+        report.recording = current.file;
+    };
     try {
-        if (config.duration.count() < 1 || config.duration > std::chrono::minutes(10)) {
+        if (!config.continuous && (config.duration.count() < 1 || config.duration > std::chrono::minutes(10))) {
             throw std::invalid_argument("Probe duration must be between 1 and 600 seconds");
         }
+        if (config.pre_roll < std::chrono::seconds::zero() || config.pre_roll > std::chrono::seconds(60) ||
+            config.post_roll <= std::chrono::seconds::zero() || config.segment_duration <= std::chrono::seconds::zero())
+            throw std::invalid_argument("Invalid recording timing configuration");
         if (!config.synthetic && (config.host.empty() ||
             config.host.find_first_not_of("0123456789.") != std::string::npos)) {
             throw std::invalid_argument("An IPv4 camera address is required");
@@ -103,28 +156,43 @@ ProbeReport run_probe(const ProbeConfig& config) {
         }
         BusPtr bus(gst_element_get_bus(pipeline.value));
         started = std::chrono::steady_clock::now();
+        session_utc_ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
         if (gst_element_set_state(pipeline.value, GST_STATE_PLAYING) == GST_STATE_CHANGE_FAILURE) {
             throw std::runtime_error("Media pipeline could not start");
         }
-        EncodedRing ring(std::chrono::seconds(10), 64 * 1024 * 1024);
-        std::unique_ptr<EventWriter> writer;
+        EncodedRing ring(config.pre_roll + std::chrono::seconds(5), 64 * 1024 * 1024);
         std::optional<MonoTime> last_keyframe;
         ConfirmationGate confirmation;
-        EventWindow event(std::chrono::seconds(20));
+        EventWindow event(config.post_roll);
         MonoTime next_analysis{};
         MonoTime last_analysis{};
+        auto last_packet = started;
+        auto next_heartbeat = started;
         bool attempted_recording = false;
-        while (std::chrono::steady_clock::now() - started < config.duration) {
+        while (config.continuous || std::chrono::steady_clock::now() - started < config.duration) {
             if (config.cancelled && config.cancelled()) { report.cancelled = true; break; }
+            const auto now = std::chrono::steady_clock::now();
+            if (now >= next_heartbeat) {
+                next_heartbeat = now + std::chrono::seconds(1);
+                report.elapsed_seconds = std::chrono::duration<double>(now - started).count();
+                if (config.heartbeat) config.heartbeat(report);
+                if (config.storage_ready && !config.storage_ready())
+                    throw std::runtime_error("Storage unavailable: recording quota or free-space reserve reached");
+            }
             if (GstMessage* message = gst_bus_pop_filtered(bus.get(),
                 static_cast<GstMessageType>(GST_MESSAGE_ERROR | GST_MESSAGE_EOS))) {
                 const bool failed = GST_MESSAGE_TYPE(message) == GST_MESSAGE_ERROR;
                 gst_message_unref(message);
                 if (failed) throw std::runtime_error("Stream failed: check camera connectivity, credentials and H.264 support");
-                break;
+                throw std::runtime_error("Video stream ended unexpectedly");
             }
             GstSample* sample = gst_app_sink_try_pull_sample(GST_APP_SINK(sink.get()), 100 * GST_MSECOND);
-            if (!sample) continue;
+            if (!sample) {
+                if (std::chrono::steady_clock::now() - last_packet > std::chrono::seconds(10))
+                    throw std::runtime_error("Video stream stopped producing frames");
+                continue;
+            }
+            last_packet = std::chrono::steady_clock::now();
             GstBuffer* buffer = gst_sample_get_buffer(sample);
             GstCaps* caps = gst_sample_get_caps(sample);
             gchar* caps_text = gst_caps_to_string(caps);
@@ -157,7 +225,15 @@ ProbeReport run_probe(const ProbeConfig& config) {
             }
             ring.push(packet);
             report.ring_bytes = ring.bytes();
-            if (writer) writer->push(packet);
+            if (writer) {
+                if (packet.keyframe && packet.received - segment_start >= config.segment_duration) {
+                    finish_segment();
+                    ++current.segment;
+                    start_segment(packet);
+                }
+                writer->push(packet);
+                current.end_utc_ms = session_utc_ms + std::chrono::duration_cast<std::chrono::milliseconds>(packet.received).count();
+            }
             bool start_event = false;
             if (analysis && packet.received >= next_analysis) {
                 next_analysis = packet.received + std::chrono::milliseconds(333);
@@ -184,23 +260,30 @@ ProbeReport run_probe(const ProbeConfig& config) {
             const bool manual_start = config.test_recording && !attempted_recording && packet.received >= std::chrono::seconds(6);
             if (manual_start || start_event) {
                 attempted_recording = true;
-                const auto history = ring.snapshot_from(packet.received - std::chrono::seconds(analysis ? 10 : 4));
+                if (manual_start) event.person_seen(packet.received);
+                const auto history = ring.snapshot_from(packet.received - (analysis ? config.pre_roll : std::chrono::seconds(4)));
                 if (history.empty()) throw std::runtime_error("No keyframe available for recording");
-                std::filesystem::create_directories(config.output);
+                static std::atomic_uint64_t sequence{0};
+                std::random_device random;
                 const auto id = std::chrono::duration_cast<std::chrono::microseconds>(
                     std::chrono::system_clock::now().time_since_epoch()).count();
-                report.recording = config.output / ("probe-event-" + std::to_string(id) + ".mkv");
-                writer = std::make_unique<EventWriter>(report.recording, history.front());
+                current.event_id = std::to_string(id) + "-" + std::to_string(random()) + "-" + std::to_string(sequence++);
+                current.segment = 0;
+                current.reason.clear();
+                current.status = "recording";
+                current.start_utc_ms = session_utc_ms + std::chrono::duration_cast<std::chrono::milliseconds>(history.front().received).count();
+                notify(RecordingStage::event_started);
+                event_open = true;
+                start_segment(history.front());
                 for (const auto& previous : history) writer->push(previous);
+                current.end_utc_ms = session_utc_ms + std::chrono::duration_cast<std::chrono::milliseconds>(packet.received).count();
                 ++report.events;
                 progress(config, analysis ? "Orang terkonfirmasi: rekaman event dimulai, termasuk buffer pre-roll."
                     : "Pemicu uji manual: buffer sebelum kejadian sedang direkam (bukan deteksi AI).");
             }
-            if (analysis && event.expire(packet.received) && writer) {
-                report.recorded_packets += writer->packets();
-                writer->finish();
-                writer.reset();
-                progress(config, "Event selesai: 20 detik tanpa konfirmasi person baru.");
+            if (event.expire(packet.received) && event_open) {
+                finish_event("complete", "post_roll_elapsed");
+                progress(config, "Event selesai setelah post-roll tanpa konfirmasi person baru.");
             }
             if (report.packets == 1 || report.packets % 30 == 0) {
                 std::ostringstream message;
@@ -209,10 +292,9 @@ ProbeReport run_probe(const ProbeConfig& config) {
                 progress(config, message.str());
             }
         }
-        if (writer) {
+        if (event_open) {
             report.stopped_during_event = event.active();
-            report.recorded_packets += writer->packets();
-            writer->finish();
+            finish_event("interrupted", "session_stopped");
         }
         if (report.packets == 0 && !report.cancelled) throw std::runtime_error("No H.264 video received within the probe timeout");
         if (config.test_recording && !attempted_recording && !report.cancelled) {
@@ -224,6 +306,15 @@ ProbeReport run_probe(const ProbeConfig& config) {
         report.success = !report.cancelled;
     } catch (const std::exception& error) {
         report.error = error.what();
+        if (event_open) {
+            report.stopped_during_event = true;
+            try { finish_event("interrupted", "stream_or_storage_error"); }
+            catch (...) {
+                current.status = "partial";
+                current.reason = "finalization_failed";
+                try { notify(RecordingStage::event_finished); } catch (...) {}
+            }
+        }
     }
     report.elapsed_seconds = std::chrono::duration<double>(std::chrono::steady_clock::now() - started).count();
     return report;
@@ -246,6 +337,41 @@ bool validate_recording(const std::filesystem::path& file, bool hardware_decode)
     const bool ok = message && GST_MESSAGE_TYPE(message) == GST_MESSAGE_EOS;
     if (message) gst_message_unref(message);
     return ok;
+}
+
+bool play_recordings(const std::vector<std::filesystem::path>& files, const std::function<bool()>& cancelled) {
+    initialize_media();
+    for (const auto& file : files) {
+        if (cancelled()) return false;
+        Pipeline pipeline{gst_element_factory_make("playbin", nullptr)};
+        if (!pipeline.value) return false;
+        const auto utf8 = file.u8string();
+        gchar* uri = gst_filename_to_uri(reinterpret_cast<const char*>(utf8.c_str()), nullptr);
+        GstElement* video = gst_element_factory_make("d3d11videosink", nullptr);
+        GstElement* audio = gst_element_factory_make("fakesink", nullptr);
+        if (!uri || !video || !audio) {
+            if (uri) g_free(uri);
+            if (video) gst_object_unref(video);
+            if (audio) gst_object_unref(audio);
+            return false;
+        }
+        gst_object_ref_sink(video); gst_object_ref_sink(audio);
+        g_object_set(pipeline.value, "uri", uri, "video-sink", video, "audio-sink", audio, nullptr);
+        g_free(uri); gst_object_unref(video); gst_object_unref(audio);
+        BusPtr bus(gst_element_get_bus(pipeline.value));
+        if (gst_element_set_state(pipeline.value, GST_STATE_PLAYING) == GST_STATE_CHANGE_FAILURE) return false;
+        for (;;) {
+            if (cancelled()) return false;
+            GstMessage* message = gst_bus_timed_pop_filtered(bus.get(), 100 * GST_MSECOND,
+                static_cast<GstMessageType>(GST_MESSAGE_EOS | GST_MESSAGE_ERROR));
+            if (!message) continue;
+            const bool ended = GST_MESSAGE_TYPE(message) == GST_MESSAGE_EOS;
+            gst_message_unref(message);
+            if (!ended) return false;
+            break;
+        }
+    }
+    return true;
 }
 
 } // namespace opennvr
