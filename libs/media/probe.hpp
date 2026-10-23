@@ -5,10 +5,13 @@
 #include <chrono>
 #include <filesystem>
 #include <functional>
+#include <memory>
 #include <string>
 #include <vector>
 
 namespace opennvr {
+class InferenceScheduler;
+struct EncodedPacket;
 
 struct ProbeConfig {
     bool synthetic = true;
@@ -32,6 +35,8 @@ struct ProbeConfig {
     std::function<void(const RecordingUpdate&)> recording_update;
     std::function<void(const struct ProbeReport&)> heartbeat;
     std::function<bool()> storage_ready;
+    std::shared_ptr<InferenceScheduler> scheduler;
+    std::function<void(const EncodedPacket&)> live_packet;
 };
 
 struct ProbeReport {

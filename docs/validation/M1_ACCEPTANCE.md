@@ -26,6 +26,7 @@ Status: engine proses pengguna, startup kamera/CUDA serta event person complete 
 | Installer | `-DryRun` lulus; tidak mengubah service, folder sistem, ACL atau credential |
 | Service aktual (24 Oktober) | Pengguna menyelesaikan instalasi elevated; SCM Running, LocalService, PID 28128 di Session 0; API `service=true`, `state=running`, stream/AI/storage siap. Frame AI bertambah dari 29 pada laporan pengguna menjadi 100 saat pemeriksaan berikutnya |
 | Event person pada service (24 Oktober) | Pengguna mengonfirmasi uji berfungsi; API mencatat 14 frame person dan satu event `complete`, satu segmen, 36,75 detik, 5.715.387 byte, finalisasi `post_roll_elapsed`; service tetap running pada attempt pertama |
+| Reboot (konfirmasi pengguna, 24 Oktober) | Pengguna melaporkan uji reboot lulus pada service satu kamera; soak belum dilakukan. Ini bukan hasil reboot build multi-kamera baru |
 | Konfigurasi SCM aktual | Delayed automatic startup; recovery restart 5/15/60 detik dan non-crash failure flag aktif. Perilaku setelah reboot/crash service belum diuji |
 | UI | QML smoke test berhasil, daftar event dari IPC tampil, tidak ada error QML; engine tetap dapat menerima shutdown setelah UI keluar |
 | UI playback end-to-end | Desktop meminta manifest event melalui IPC, memutar dua segmen sintetis di jendela D3D11, dan melaporkan `Playback selesai` tanpa error |
@@ -35,9 +36,9 @@ Hasil CTest awal: 5/5 kelompok lulus dalam sekitar 30 detik. Waktu recovery adal
 
 ## Belum diterima
 
-- Logout/login dan reboot host, soak 24 jam, serta kondisi disk/jaringan lapangan jangka panjang.
+- Logout/login terpisah, reboot build multi-kamera baru, soak 24 jam, serta kondisi disk/jaringan lapangan jangka panjang.
 - Akurasi person siang/malam/jauh dan dataset acceptance PRD.
-- Multi-kamera/scheduler bersama, live grid QML, editor zona, seek global, ekspor dan installer desktop.
+- Penerimaan lapangan 12 RTSP nyata; implementasi grid/scheduler dan hasil sintetis ada di [laporan multi-kamera](MULTICAMERA_LIVE_GRID.md). Editor zona, seek global, ekspor dan installer desktop masih terbuka.
 - Pemulihan kontainer `.part` menjadi video utuh; file semacam itu ditandai sebagai partial dan tidak diklaim sehat.
 
 M1 ini belum merupakan penerimaan MVP penuh. Startup CUDA dan event person complete dalam service telah lulus; hasil ini belum membuktikan seluruh lifecycle rekaman atau operasi setelah logout/reboot. Pemeriksaan event service oleh agen menggunakan metadata IPC; uji otomatis playback sebelumnya memakai media sintetis. Laporan ini harus diperbarui setelah pengujian berikutnya, tanpa menimpa bukti M0.

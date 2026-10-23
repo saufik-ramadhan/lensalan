@@ -123,7 +123,7 @@ ProbeReport run_probe(const ProbeConfig& config) {
         std::unique_ptr<PersonStream> analysis;
         if (config.detect_people) {
             progress(config, "Memuat dan warmup model person di CUDA...");
-            analysis = std::make_unique<PersonStream>(config.project_root, config.host, config.username, config.password);
+            analysis = std::make_unique<PersonStream>(config.project_root, config.host, config.username, config.password, config.scheduler, config.live_packet);
             progress(config, "AI aktif: CUDA / YOLOX-Tiny; menunggu orang pada substream.");
         }
         const std::string input = config.synthetic
@@ -208,6 +208,7 @@ ProbeReport run_probe(const ProbeConfig& config) {
             auto data = std::make_shared<std::vector<std::byte>>(size);
             gst_buffer_extract(buffer, 0, data->data(), size);
             packet.data = data;
+            if (config.synthetic && config.live_packet) config.live_packet(packet);
             const auto* structure = gst_caps_get_structure(caps, 0);
             gst_structure_get_int(structure, "width", &report.width);
             gst_structure_get_int(structure, "height", &report.height);

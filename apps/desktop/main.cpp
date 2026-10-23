@@ -1,7 +1,9 @@
 #include "backend.hpp"
+#include "live_video.hpp"
 #include "media/probe.hpp"
 #include "platform/credentials.hpp"
 #include "detection/person_detector.hpp"
+#include "detection/scheduler.hpp"
 
 #include <QCoreApplication>
 #include <QDir>
@@ -17,8 +19,75 @@
 #include <QSaveFile>
 #include <QTimer>
 #include <QQuickWindow>
+#include <QTemporaryDir>
+#include <QFile>
+#include <QTextStream>
 
 namespace {
+int profile_test(int argc, char** argv) {
+    QCoreApplication app(argc, argv);
+    QTemporaryDir directory(QDir::currentPath() + "/build/profile-test-XXXXXX");
+    if (!directory.isValid()) return 2;
+    qputenv("OPENNVR_DATA_DIR", (directory.path() + "/engine").toUtf8());
+    try {
+        Backend backend(directory.path());
+        const auto secret = QStringLiteral("local-test-password-only");
+        for (int n = 1; n <= 12; ++n) backend.saveProfile(QString("camera-%1").arg(n), QString("Test %1").arg(n), QString("192.0.2.%1").arg(n), "test-account", secret);
+        if (backend.profiles().size() != 12) throw std::runtime_error("Twelve profiles were not saved");
+        backend.saveProfile("camera-13", "Rejected", "192.0.2.13", "test-account", secret);
+        if (backend.profiles().size() != 12) throw std::runtime_error("Thirteenth camera accepted");
+        backend.saveProfile("camera-1", "Edited", "192.0.2.1", "test-account", {});
+        const auto credential_file = directory.path() + "/.local/cameras/camera-1.json";
+        if (opennvr::load_camera_credential(credential_file).password != secret) throw std::runtime_error("Editing lost stored password");
+        QFile credential(credential_file);
+        if (!credential.open(QIODevice::ReadOnly)) throw std::runtime_error("Cannot read encrypted test credential");
+        if (credential.readAll().contains(secret.toUtf8())) throw std::runtime_error("Credential saved as plaintext");
+        backend.removeProfile("camera-1");
+        if (backend.profiles().size() != 11 || !QFileInfo::exists(credential_file)) throw std::runtime_error("Profile removal damaged stored credential");
+        Backend reloaded(directory.path());
+        if (reloaded.profiles().size() != 11) throw std::runtime_error("Saved catalog did not reload");
+        QSaveFile report(".local/profile-validation.json");
+        if (!report.open(QIODevice::WriteOnly)) return 2;
+        report.write("{\"success\":true,\"note\":\"12-profile DPAPI, edit, removal, reload, camera limit\"}\n"); report.commit();
+        return 0;
+    } catch (const std::exception& error) { QTextStream(stderr) << error.what() << Qt::endl; return 1; }
+}
+void collect_live_items(QQuickItem* parent, QList<LiveVideo*>& output) {
+    if (auto* live = qobject_cast<LiveVideo*>(parent)) output.append(live);
+    for (auto* child : parent->childItems()) collect_live_items(child, output);
+}
+int ai_scheduler_test(int argc, char** argv) {
+    QCoreApplication app(argc, argv);
+    QJsonObject output;
+    bool success = false;
+    try {
+        const auto image = QImage(".deps/models/basketball1.png").convertToFormat(QImage::Format_BGR888);
+        if (image.isNull()) throw std::runtime_error("AI test image missing");
+        opennvr::InferenceScheduler scheduler(std::filesystem::path(QDir::currentPath().toStdWString()));
+        std::vector<std::shared_ptr<opennvr::AnalysisChannel>> channels;
+        for (int n = 0; n < 12; ++n) {
+            channels.push_back(scheduler.channel());
+            scheduler.submit(channels.back(), image.constBits(), image.width(), image.height(), image.bytesPerLine());
+        }
+        QJsonArray results;
+        const auto began = std::chrono::steady_clock::now();
+        std::vector<bool> completed(12);
+        while (std::chrono::steady_clock::now() - began < std::chrono::seconds(30) && results.size() < 12) {
+            for (int n = 0; n < 12; ++n) if (!completed[n]) if (auto result = scheduler.take(channels[n])) {
+                if (result->people.empty()) throw std::runtime_error("Positive person image not detected");
+                completed[n] = true;
+                results.append(QJsonObject{{"camera",n+1},{"people",static_cast<int>(result->people.size())},{"inferenceMs",result->inference_ms}});
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+        success = results.size() == 12 && scheduler.sessions() == 1;
+        output = {{"success",success},{"modelSessions",scheduler.sessions()},{"results",results},
+            {"note","Twelve channels on one positive test image; not a 12-camera RTSP benchmark"}};
+    } catch (const std::exception& error) { output["error"] = QString::fromUtf8(error.what()); }
+    QSaveFile file(".local/ai-scheduler-validation.json");
+    if (!file.open(QIODevice::WriteOnly) || file.write(QJsonDocument(output).toJson()) < 0 || !file.commit()) return 2;
+    return success ? 0 : 1;
+}
 int ai_self_test(int argc, char** argv) {
     QCoreApplication app(argc, argv);
     QJsonObject output;
@@ -88,6 +157,8 @@ int camera_probe(int argc, char** argv) {
 
 int main(int argc, char** argv) {
     for (int i = 1; i < argc; ++i) {
+        if (QString::fromUtf8(argv[i]) == "--profile-test") return profile_test(argc, argv);
+        if (QString::fromUtf8(argv[i]) == "--ai-scheduler-test") return ai_scheduler_test(argc, argv);
         if (QString::fromUtf8(argv[i]) == "--ai-self-test") return ai_self_test(argc, argv);
         if (QString::fromUtf8(argv[i]) == "--camera-probe") return camera_probe(argc, argv);
     }
@@ -95,12 +166,46 @@ int main(int argc, char** argv) {
     QCoreApplication::setOrganizationName("OpenNVR");
     QCoreApplication::setApplicationName("OpenNVR");
     QQuickStyle::setStyle("Basic");
+    qmlRegisterType<LiveVideo>("OpenNVR.Live", 1, 0, "LiveVideo");
     Backend backend(QDir::currentPath());
     QQmlApplicationEngine engine;
     engine.rootContext()->setContextProperty("backend", &backend);
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreationFailed,
                      &app, [] { QCoreApplication::exit(1); }, Qt::QueuedConnection);
     engine.loadFromModule("OpenNVR", "Main");
+    if (app.arguments().contains("--ui-grid-test")) {
+        const auto i = app.arguments().indexOf("--grid-test-count");
+        const auto count = i >= 0 ? app.arguments().value(i + 1).toInt() : 4;
+        const QList<int> layouts{1,4,9,12};
+        if (!layouts.contains(count) || engine.rootObjects().isEmpty()) return 2;
+        auto* root = engine.rootObjects().first();
+        root->findChild<QObject*>("grid-mode")->setProperty("currentIndex", layouts.indexOf(count));
+        auto* timer = new QTimer(&app); timer->setInterval(100);
+        const auto began = std::chrono::steady_clock::now();
+        QObject::connect(timer, &QTimer::timeout, &app, [&, root, began, count] {
+            QJsonArray videos;
+            bool ready = backend.engineConnected() && !backend.cameras().isEmpty();
+            int active = 0;
+            QList<LiveVideo*> live_items;
+            if (auto* window = qobject_cast<QQuickWindow*>(root)) collect_live_items(window->contentItem(), live_items);
+            for (auto* item : live_items) {
+                if (!item->active() || item->cameraId().isEmpty()) continue;
+                ++active;
+                ready &= item->frameCount() >= 5 && item->status() == "Live";
+                videos.append(QJsonObject{{"id",item->cameraId()},{"frames",item->frameCount()},{"status",item->status()}});
+            }
+            ready &= active == std::min(count, static_cast<int>(backend.cameras().size()));
+            const bool expired = std::chrono::steady_clock::now() - began > std::chrono::seconds(35);
+            if (!ready && !expired) return;
+            if (ready && !app.arguments().contains("--grid-no-snapshot")) if (auto* window = qobject_cast<QQuickWindow*>(root)) window->grabWindow().save(QString(".local/live-grid-%1.png").arg(count));
+            QSaveFile report(QString(".local/ui-grid-%1.json").arg(count));
+            if (report.open(QIODevice::WriteOnly)) {
+                report.write(QJsonDocument(QJsonObject{{"success",ready},{"gridCount",count},{"videos",videos}}).toJson()); report.commit();
+            }
+            app.exit(ready ? 0 : 2);
+        });
+        timer->start();
+    }
     if (app.arguments().contains("--ui-playback-test")) {
         auto* timer = new QTimer(&app);
         timer->setInterval(100);

@@ -63,4 +63,10 @@ Assert-InstallFailure { Assert-OpenNvrResumeState $taskPackage $taskInstall $tas
 Copy-Item -LiteralPath (Join-Path $taskInstall 'bin\opennvr_engine.exe') -Destination (Join-Path $taskPackage 'bin') -Force
 Rename-Item -LiteralPath (Join-Path $taskData 'config\camera.json') -NewName 'credential.fixture'
 Assert-InstallFailure { Assert-OpenNvrResumeState $taskPackage $taskInstall $taskData 'test-operator' } 'Resume accepted missing provisioned files'
+$null = New-Item -ItemType Directory -Path (Join-Path $taskData 'config\cameras')
+Copy-Item -LiteralPath (Join-Path $taskData 'config\credential.fixture') -Destination (Join-Path $taskData 'config\cameras\camera-1.json')
+Set-Content -LiteralPath (Join-Path $taskData 'config\engine.json') -Value '{"operatorSid":"test-operator","cameras":[{"id":"camera-1","credential":"cameras/camera-1.json"}]}' -Encoding ascii
+Assert-OpenNvrResumeState $taskPackage $taskInstall $taskData 'test-operator'
+Set-Content -LiteralPath (Join-Path $taskData 'config\engine.json') -Value '{"operatorSid":"test-operator","cameras":[{"id":"camera-1","credential":"../credential.fixture"}]}' -Encoding ascii
+Assert-InstallFailure { Assert-OpenNvrResumeState $taskPackage $taskInstall $taskData 'test-operator' } 'Resume accepted traversal in catalog'
 Write-Output "PASS PowerShell $($PSVersionTable.PSVersion): quoted Create/Change arguments, CIM schema/error handling, resume preservation and invalid-state rejection. No Windows services changed."

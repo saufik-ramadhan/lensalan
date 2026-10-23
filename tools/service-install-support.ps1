@@ -30,8 +30,7 @@ function Assert-OpenNvrResumeState([string]$PackageRoot, [string]$InstallRoot, [
         (Join-Path $InstallRoot 'bin\opennvr_engine.exe'),
         (Join-Path $InstallRoot 'runtime-manifest.json'),
         (Join-Path $DataRoot '.acl-provisioned'),
-        (Join-Path $DataRoot 'config\engine.json'),
-        (Join-Path $DataRoot 'config\camera.json'))) {
+        (Join-Path $DataRoot 'config\engine.json'))) {
         if (-not (Test-Path -LiteralPath $taskFile -PathType Leaf)) {
             throw "Cannot resume: required provisioned file is missing: $taskFile"
         }
@@ -41,4 +40,16 @@ function Assert-OpenNvrResumeState([string]$PackageRoot, [string]$InstallRoot, [
     if ($taskSourceHash -ne $taskInstalledHash) { throw 'Cannot resume: installed engine differs from the supplied bundle.' }
     $taskSettings = Get-Content -LiteralPath (Join-Path $DataRoot 'config\engine.json') -Raw | ConvertFrom-Json
     if ($taskSettings.operatorSid -ne $OperatorSid) { throw 'Cannot resume: OperatorSid differs from the provisioned configuration.' }
+    $taskCredentials = @('camera.json')
+    if ($taskSettings.PSObject.Properties.Name -contains 'cameras') {
+        $taskCameras = @($taskSettings.cameras)
+        if ($taskCameras.Count -lt 1 -or $taskCameras.Count -gt 12) { throw 'Cannot resume: invalid camera count.' }
+        $taskCredentials = @($taskCameras | ForEach-Object {
+            if ($_.credential -cnotmatch '^(camera\.json|cameras/[A-Za-z0-9_-]{1,32}\.json)$') { throw 'Cannot resume: invalid credential path.' }
+            $_.credential
+        })
+    }
+    foreach ($taskCredential in $taskCredentials) {
+        if (-not (Test-Path -LiteralPath (Join-Path (Join-Path $DataRoot 'config') $taskCredential) -PathType Leaf)) { throw 'Cannot resume: provisioned camera credential is missing.' }
+    }
 }

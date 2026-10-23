@@ -1,7 +1,7 @@
 # Rencana Pengembangan — OpenNVR
 
 Tanggal: 23 Oktober 2026  
-Status: draft perencanaan, belum dieksekusi  
+Status: pelaksanaan bertahap; fondasi M0/M1 dan sebagian M2–M4 sudah diimplementasikan (pembaruan 24 Oktober 2026)
 Acuan kebutuhan: [PRD v0.1](PRD.md)
 
 ## 1. Strategi pengerjaan

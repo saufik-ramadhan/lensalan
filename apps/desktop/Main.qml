@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import OpenNVR.Live 1.0
 
 ApplicationWindow {
     id: window
@@ -13,6 +14,9 @@ ApplicationWindow {
     color: "#0b111b"
     font.family: "Segoe UI"
     font.pixelSize: 14
+    property int gridCount: [1, 4, 9, 12][gridMode.currentIndex]
+    property int gridPage: 0
+    property string focusedCamera: ""
     palette.windowText: "#e5edf6"
     palette.text: "#e5edf6"
     palette.button: "#20314a"
@@ -22,7 +26,7 @@ ApplicationWindow {
 
     function engineLabel(state) {
         const names = {"starting":"Memulai", "connecting":"Menghubungkan kamera", "warming_up":"Menyiapkan video dan AI",
-            "running":"Monitoring aktif", "reconnecting":"Menyambungkan kembali", "paused":"Dijeda",
+            "running":"Monitoring aktif", "degraded":"Sebagian kamera belum siap", "reconnecting":"Menyambungkan kembali", "paused":"Dijeda",
             "storage_blocked":"Penyimpanan membutuhkan perhatian", "configuration_or_storage_error":"Periksa konfigurasi atau penyimpanan", "stopped":"Berhenti"}
         return names[state] || state
     }
@@ -54,16 +58,20 @@ ApplicationWindow {
                 spacing: 4
                 Label { text: "OPENNVR"; color: "#62dcc0"; font.pixelSize: 14; font.letterSpacing: 3 }
                 Label { text: "Monitoring & Event"; font.pixelSize: 30; font.bold: true }
-                Label { text: "Deteksi orang pada host · Rekaman lokal · Satu kamera"; color: "#93a5bd" }
+                Label { text: "Deteksi orang pada host · Rekaman lokal · Hingga 12 kamera"; color: "#93a5bd" }
             }
             Item { Layout.fillWidth: true }
-            Label { text: "M1 / DEVELOPMENT"; color: "#e4bc70"; font.pixelSize: 12 }
+            Label { text: "MULTI-CAMERA / DEVELOPMENT"; color: "#e4bc70"; font.pixelSize: 12 }
         }
 
         TabBar {
             id: tabs
+            objectName: "main-tabs"
+            background: Rectangle { color: window.color }
             Layout.fillWidth: true
+            NavTab { text: "Live grid" }
             NavTab { text: "Engine & Event" }
+            NavTab { text: "Kamera" }
             NavTab { text: "Diagnostik kamera" }
         }
 
@@ -71,6 +79,59 @@ ApplicationWindow {
             Layout.fillWidth: true
             Layout.fillHeight: true
             currentIndex: tabs.currentIndex
+
+            ColumnLayout {
+                spacing: 12
+                RowLayout {
+                    Layout.fillWidth: true
+                    Label { text: "LIVE MONITORING"; font.letterSpacing: 1; color: "#93a5bd" }
+                    Item { Layout.fillWidth: true }
+                    ComboBox { id: gridMode; objectName: "grid-mode"; model: ["1 kamera", "4 kamera", "9 kamera", "12 kamera"]; currentIndex: 1; onActivated: { window.gridPage = 0; window.focusedCamera = "" } }
+                    Button { text: "‹"; enabled: window.gridPage > 0; onClicked: { --window.gridPage; window.focusedCamera = "" } }
+                    Label { text: "Halaman " + (window.gridPage + 1) + " / " + Math.max(1, Math.ceil(backend.cameras.length / window.gridCount)); color: "#93a5bd" }
+                    Button { text: "›"; enabled: (window.gridPage + 1) * window.gridCount < backend.cameras.length; onClicked: { ++window.gridPage; window.focusedCamera = "" } }
+                }
+                Label { visible: !backend.liveSupported; text: backend.engineConnected ? "Perbarui runtime service untuk mengaktifkan live grid." : "Menunggu koneksi engine."; color: "#e4bc70"; Layout.fillWidth: true }
+                GridLayout {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    columns: window.gridCount === 1 ? 1 : window.gridCount === 4 ? 2 : window.gridCount === 9 ? 3 : 4
+                    rows: window.gridCount === 1 ? 1 : window.gridCount === 4 ? 2 : 3
+                    rowSpacing: 10; columnSpacing: 10
+                    Repeater {
+                        model: window.gridCount
+                        delegate: Rectangle {
+                            id: tile
+                            required property int index
+                            property var camera: window.gridCount === 1 && window.focusedCamera.length > 0 ? backend.cameras.find(c => c.id === window.focusedCamera) : backend.cameras[window.gridPage * window.gridCount + index]
+                            property var state: camera ? (backend.cameraStates[camera.id] || {}) : ({})
+                            Layout.fillWidth: true; Layout.fillHeight: true
+                            Layout.minimumWidth: 100; Layout.minimumHeight: 100
+                            color: "#070d15"; radius: 6; border.color: "#26394e"; clip: true
+                            LiveVideo {
+                                id: liveVideo
+                                objectName: tile.camera ? "live-" + tile.camera.id : "empty-live"
+                                anchors.fill: parent; anchors.topMargin: 32; anchors.bottomMargin: 28
+                                directory: backend.engineDirectory
+                                cameraId: tile.camera ? tile.camera.id : ""
+                                active: tile.camera !== undefined && backend.engineConnected && backend.liveSupported && tabs.currentIndex === 0 && window.visible && window.visibility !== Window.Minimized
+                            }
+                            Label { anchors.centerIn: parent; visible: !tile.camera || liveVideo.status !== "Live"; text: tile.camera ? liveVideo.status : "Slot kamera kosong"; color: "#8197b0"; font.pixelSize: 12 }
+                            Rectangle {
+                                anchors.top: parent.top; width: parent.width; height: 32; color: "#152235"
+                                Label { anchors.left: parent.left; anchors.leftMargin: 10; anchors.verticalCenter: parent.verticalCenter; text: tile.camera ? tile.camera.name : "Tambahkan kamera"; color: "#dce8f5"; font.bold: true; width: parent.width - 26; elide: Text.ElideRight }
+                            }
+                            Row {
+                                anchors.bottom: parent.bottom; anchors.bottomMargin: 7; anchors.left: parent.left; anchors.leftMargin: 10; spacing: 7
+                                Rectangle { width: 7; height: 7; radius: 4; anchors.verticalCenter: parent.verticalCenter; color: tile.state.recording ? "#f27777" : liveVideo.status === "Live" ? "#62dcc0" : "#d5ab68" }
+                                Label { text: !backend.engineConnected ? "Engine terputus" : tile.camera ? (tile.state.recording ? "MEREKAM EVENT" : window.engineLabel(tile.state.state || "starting")) : "Belum dikonfigurasi"; color: "#a7bbd2"; font.pixelSize: 11 }
+                            }
+                            MouseArea { anchors.fill: parent; onDoubleClicked: { if (tile.camera) { window.focusedCamera = tile.camera.id; gridMode.currentIndex = 0 } } }
+                        }
+                    }
+                }
+                Label { text: "Klik dua kali untuk fokus kamera · Live menggunakan substream · Rekaman main stream tetap berjalan saat desktop ditutup"; color: "#8298b2"; font.pixelSize: 12; Layout.fillWidth: true; wrapMode: Text.WordWrap }
+            }
 
             ColumnLayout {
                 spacing: 16
@@ -102,8 +163,8 @@ ApplicationWindow {
                     Label { text: "REKAMAN EVENT"; font.letterSpacing: 1; color: "#93a5bd" }
                     Item { Layout.fillWidth: true }
                     TextField { id: eventDate; placeholderText: "YYYY-MM-DD / semua tanggal"; Layout.preferredWidth: 250 }
-                    ComboBox { id: cameraFilter; model: ["Semua kamera", "Kamera 1"]; Layout.preferredWidth: 160 }
-                    Button { text: "Tampilkan"; enabled: backend.engineConnected; onClicked: backend.refreshEvents(eventDate.text.trimmed(), cameraFilter.currentIndex === 1 ? "camera-1" : "") }
+                    ComboBox { id: cameraFilter; model: ["Semua kamera"].concat(backend.cameras.map(c => c.name)); Layout.preferredWidth: 160 }
+                    Button { text: "Tampilkan"; enabled: backend.engineConnected; onClicked: backend.refreshEvents(eventDate.text.trimmed(), cameraFilter.currentIndex > 0 ? backend.cameras[cameraFilter.currentIndex - 1].id : "") }
                 }
                 Rectangle {
                     Layout.fillWidth: true
@@ -132,7 +193,7 @@ ApplicationWindow {
                                     Layout.fillWidth: true
                                     spacing: 5
                                     Label { text: Qt.formatDateTime(new Date(modelData.startMs), "dd MMM yyyy · HH:mm:ss"); font.bold: true; font.pixelSize: 16 }
-                                    Label { text: "Kamera 1 · " + window.eventLabel(modelData.status) + " · " + modelData.segmentCount + " segmen"; color: "#b5c7dc" }
+                                    Label { text: modelData.cameraId + " · " + window.eventLabel(modelData.status) + " · " + modelData.segmentCount + " segmen"; color: "#b5c7dc" }
                                     Label { text: (modelData.endMs > 0 ? ((modelData.endMs - modelData.startMs) / 1000).toFixed(1) + " detik" : "Sedang berlangsung") + " · " + (modelData.bytes / 1000000).toFixed(1) + " MB"; color: "#8298b2"; font.pixelSize: 12 }
                                 }
                                 Button { text: "Putar"; enabled: backend.engineConnected && !backend.busy && modelData.status !== "recording" && modelData.status !== "deleting"; onClicked: backend.playEvent(modelData.id) }
@@ -147,6 +208,41 @@ ApplicationWindow {
                     Button { text: "Hentikan playback"; enabled: backend.busy; onClicked: backend.stop() }
                 }
                 Label { text: "Maksimal 50 event terbaru sesuai filter. Retensi awal 14 hari; engine menjaga kuota dan ruang kosong cadangan."; color: "#8298b2"; font.pixelSize: 12; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+            }
+
+            ColumnLayout {
+                spacing: 16
+                Label { text: "KATALOG KAMERA"; font.pixelSize: 22; font.bold: true }
+                Label { text: "Simpan hingga 12 kamera. Katalog lokal diterapkan ke service melalui installer Administrator; rekaman yang sedang berjalan memakai konfigurasi terakhir."; color: "#a7bbd2"; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                RowLayout {
+                    ComboBox {
+                        id: profileSelect; Layout.fillWidth: true; model: backend.profiles; textRole: "name"; currentIndex: -1; displayText: currentIndex < 0 ? "Pilih kamera untuk mengedit" : currentText
+                        onActivated: {
+                            const profile = backend.profiles[currentIndex]
+                            profileId.text = profile.id; profileName.text = profile.name; profileHost.text = profile.host; profileUsername.text = profile.username; profilePassword.clear()
+                        }
+                    }
+                    Button { text: "Kamera baru"; enabled: backend.profiles.length < 12; onClicked: { profileSelect.currentIndex = -1; profileId.text = backend.nextProfileId(); profileName.clear(); profileHost.clear(); profileUsername.clear(); profilePassword.clear() } }
+                }
+                GridLayout {
+                    columns: 2; Layout.fillWidth: true; columnSpacing: 16; rowSpacing: 12
+                    Label { text: "ID kamera" }
+                    TextField { id: profileId; readOnly: true; text: backend.nextProfileId(); Layout.fillWidth: true }
+                    Label { text: "Nama" }
+                    TextField { id: profileName; placeholderText: "Contoh: Gerbang depan"; Layout.fillWidth: true }
+                    Label { text: "Alamat IP" }
+                    TextField { id: profileHost; placeholderText: "192.168.1.x"; Layout.fillWidth: true }
+                    Label { text: "Camera Account" }
+                    TextField { id: profileUsername; placeholderText: "Username RTSP Tapo"; Layout.fillWidth: true }
+                    Label { text: "Password" }
+                    TextField { id: profilePassword; placeholderText: "Kosongkan saat edit untuk mempertahankan password"; echoMode: TextInput.Password; Layout.fillWidth: true }
+                }
+                RowLayout {
+                    Button { text: "Simpan profil terenkripsi"; enabled: profileId.text.length > 0; onClicked: { backend.saveProfile(profileId.text, profileName.text, profileHost.text, profileUsername.text, profilePassword.text); profilePassword.clear() } }
+                    Button { text: "Hapus dari katalog"; enabled: profileSelect.currentIndex >= 0 && backend.profiles.length > 1; onClicked: { backend.removeProfile(profileId.text); profileSelect.currentIndex = -1 } }
+                    Label { text: backend.profiles.length + " / 12 profil tersimpan"; color: "#93a5bd" }
+                }
+                Label { text: backend.log; Layout.fillWidth: true; Layout.fillHeight: true; wrapMode: Text.WordWrap; color: "#92abc5"; maximumLineCount: 8; elide: Text.ElideLeft; verticalAlignment: Text.AlignBottom }
             }
 
             ColumnLayout {

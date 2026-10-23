@@ -12,6 +12,7 @@ struct EngineOptions {
     QString credential;
     QString operator_sid;
     bool synthetic = false;
+    int synthetic_cameras = 1;
     bool service = false;
     int run_seconds = 0;
 };

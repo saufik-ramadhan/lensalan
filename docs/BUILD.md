@@ -2,7 +2,7 @@
 
 ## Status
 
-Implementasi M1 menambahkan engine satu kamera yang terpisah dari desktop, SQLite, reconnect, segmentasi dan retensi. Service LocalService sudah dipasang pengguna; startup kamera/CUDA di Session 0 terverifikasi pada 24 Oktober 2026. Grid 12 kamera dan ONVIF client belum tersedia. Sesi diagnostik AI tetap dibatasi 60 detik; engine tidak memiliki batas itu.
+Engine mendukung 1–12 kamera, satu scheduler CUDA, kanal media per kamera dan live grid QML 1/4/9/12. Dua belas sumber sintetis dan 12 kanal CUDA pada gambar positif telah diuji. Versi service sebelumnya lulus startup kamera/CUDA di Session 0, event person dan reboot pengguna; build ini memerlukan verifikasi deployment. Sesi diagnostik AI tetap dibatasi 60 detik; engine tidak memiliki batas itu. ONVIF client belum tersedia.
 
 ## Toolchain yang diuji
 
@@ -99,6 +99,18 @@ Data development default: `.local/engine/`. Untuk menjalankan engine pada direkt
 
 Gunakan `OPENNVR_DATA_DIR` untuk mengarahkan desktop ke direktori data engine alternatif. Desktop tidak mengakses SQLite langsung. Service yang sudah diprovision di ProgramData/OpenNVR dideteksi otomatis.
 
+Untuk grid sintetis terisolasi:
+
+```powershell
+# Terminal 1, dengan PATH toolchain seperti pada dev.ps1:
+.\build\dev\opennvr_engine.exe --console --synthetic --cameras 12 --root . --data .local/grid-demo
+# Terminal 2:
+$env:OPENNVR_DATA_DIR = "$PWD/.local/grid-demo"
+.\OpenNVR.cmd
+```
+
+Mode sintetis diberi label Simulasi, memakai pemicu uji dan tidak membuka kamera. Tab Kamera menyimpan katalog CurrentUser DPAPI di `.local/cameras.json` dan `.local/cameras/`; kamera-1 lama tetap kompatibel tanpa katalog. User engine memuat katalog lokal saat restart, kecuali memakai file credential/konfigurasi data terisolasi. Installer memprovision katalog ke config service. Lihat [ADR 0004](adr/0004-multicamera-live-grid.md) untuk batas media/scheduler.
+
 Event panjang dipecah pada keyframe sekitar 60 detik. File `.mkv.part` aktif hanya menjadi `.mkv` setelah finalisasi. Daftar event menampilkan status complete/interrupted/partial. Playback membuka jendela D3D11 dan memutar segmen final secara berurutan; belum ada seek global lintas segmen.
 
 Default storage: 14 hari, kuota 100 GB, reserve minimum 10 GB atau 5% volume. `engine.json` pada direktori data console (atau `config/engine.json` untuk service) dapat menetapkan `retentionDays`, `quotaGB`, `reserveGB`; perubahan diterapkan saat engine dimulai kembali. Konfigurasi service hanya dapat diubah Administrator. Folder M0 `.local/recordings/` tidak dikelola retensi M1. File yatim dihitung dalam kuota tetapi tidak dihapus diam-diam.
@@ -117,12 +129,12 @@ Uji ini memeriksa argumen registrasi/update berkutip dan penanganan error melalu
 
 ## Batas implementasi
 
-- Satu kamera per sesi. Belum ada scheduler inferensi bersama 12 kamera.
+- Batas konfigurasi 12 kamera telah diimplementasikan; kapasitas 12 RTSP nyata belum diterima hanya dari uji sintetis.
 - Deteksi full-frame; editor zona dan confidence per kamera belum tersedia.
-- Video untuk AI didekode melalui D3D11 lalu diunduh ke CPU untuk preprocessing BGR. Inferensi berjalan di CUDA; pipeline belum zero-copy.
+- Video AI dan live didekode melalui D3D11. AI memakai BGR CPU; live memakai BGRA QImage lalu tekstur Qt Quick, sekitar 10 update/detik per tile. Pipeline belum zero-copy.
 - Kegagalan AI/GPU ditampilkan; tidak beralih diam-diam ke CPU atau motion detection.
 - Sesi yang berhenti saat event aktif akan memfinalisasi klip pendek dan menandai `stoppedDuringEvent` pada report; post-roll penuh tidak dijamin pada penghentian sesi.
 - Recovery menandai file yang belum final sebagai partial dan file hilang sebagai missing. File `.part` tidak otomatis dipromosikan menjadi rekaman yang dianggap utuh.
-- Startup GPU dan event person complete dalam service sudah terverifikasi; logout/reboot, pembacaan 12 kamera, akurasi malam/jauh dan soak test 24 jam belum diverifikasi.
+- Startup GPU/event service dan reboot pada versi sebelumnya terverifikasi/dikonfirmasi pengguna; build multi-kamera, logout terpisah, 12 kamera nyata, akurasi malam/jauh dan soak 24 jam masih perlu penerimaan.
 
 Jangan menafsirkan hasil satu gambar atau satu kamera sebagai pencapaian NFR pada PRD.

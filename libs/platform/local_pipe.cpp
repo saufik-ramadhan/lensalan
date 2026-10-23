@@ -91,9 +91,9 @@ QString engine_pipe_name(const QString& data_directory) {
     return "OpenNVR.Control." + QString::fromLatin1(QCryptographicHash::hash(path.toUtf8(), QCryptographicHash::Sha256).toHex().left(20));
 }
 
-QJsonObject engine_request(const QString& directory, const QJsonObject& request, int timeout_ms) {
+QJsonObject engine_request(const QString& directory, const QJsonObject& request, int timeout_ms, const QString& suffix) {
     QLocalSocket socket;
-    socket.connectToServer(engine_pipe_name(directory));
+    socket.connectToServer(engine_pipe_name(directory) + suffix);
     if (!socket.waitForConnected(timeout_ms)) return {{"ok", false}, {"error", "Engine belum terhubung"}};
     auto message = request;
     message["v"] = 1;

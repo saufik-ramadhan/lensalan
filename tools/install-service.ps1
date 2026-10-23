@@ -3,6 +3,7 @@ param(
     [string]$InstallRoot = (Join-Path $env:ProgramFiles 'OpenNVR'),
     [string]$DataRoot = (Join-Path $env:ProgramData 'OpenNVR'),
     [string]$SourceCredential = '',
+    [string]$SourceCatalog = '',
     [string]$OperatorSid = '',
     [switch]$Resume,
     [switch]$DryRun
@@ -15,11 +16,16 @@ $taskPackageRoot = (Resolve-Path -LiteralPath $PackageRoot).Path
 $taskInstallRoot = [IO.Path]::GetFullPath($InstallRoot)
 $taskDataRoot = [IO.Path]::GetFullPath($DataRoot)
 if (-not $SourceCredential) { $SourceCredential = Join-Path $taskProjectRoot '.local\camera.json' }
+if (-not $SourceCatalog -and (Test-Path -LiteralPath (Join-Path $taskProjectRoot '.local\cameras.json'))) { $SourceCatalog = Join-Path $taskProjectRoot '.local\cameras.json' }
 if (-not $OperatorSid) { $OperatorSid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value }
 $null = [Security.Principal.SecurityIdentifier]::new($OperatorSid)
 if (-not (Test-Path -LiteralPath (Join-Path $taskPackageRoot 'runtime-manifest.json')) -or
     -not (Test-Path -LiteralPath (Join-Path $taskPackageRoot 'bin\opennvr_engine.exe'))) { throw 'Package is not a prepared OpenNVR engine bundle.' }
-if (-not $Resume -and -not (Test-Path -LiteralPath $SourceCredential)) { throw 'Configure a local camera credential before service installation.' }
+if (-not $Resume) {
+    if ($SourceCatalog) {
+        if (-not (Test-Path -LiteralPath $SourceCatalog -PathType Leaf)) { throw 'Source camera catalog is missing.' }
+    } elseif (-not (Test-Path -LiteralPath $SourceCredential)) { throw 'Configure a local camera credential before service installation.' }
+}
 foreach ($taskDirectory in @($taskInstallRoot,$taskDataRoot)) {
     if ([IO.Path]::GetPathRoot($taskDirectory) -eq $taskDirectory -or (Split-Path -Leaf $taskDirectory) -ne 'OpenNVR') {
         throw 'InstallRoot and DataRoot must be dedicated OpenNVR directories.'
@@ -93,7 +99,10 @@ try {
     if (-not $Resume) {
         foreach ($taskItem in Get-ChildItem -LiteralPath $taskPackageRoot -Force) { Copy-Item -LiteralPath $taskItem.FullName -Destination $taskInstallRoot -Recurse -Force }
         Set-Content -LiteralPath (Join-Path $taskDataRoot '.acl-provisioned') -Value 'Created by the OpenNVR service installer; native provisioning also verifies the DACL.' -Encoding utf8
-        & $taskExe --provision-service --root $taskInstallRoot --data $taskDataRoot --source-credential $SourceCredential --operator-sid $OperatorSid
+        $taskProvisionArguments = @('--provision-service','--root',$taskInstallRoot,'--data',$taskDataRoot,'--operator-sid',$OperatorSid)
+        if ($SourceCatalog) { $taskProvisionArguments += @('--source-catalog',$SourceCatalog) }
+        else { $taskProvisionArguments += @('--source-credential',$SourceCredential) }
+        & $taskExe @taskProvisionArguments
         if ($LASTEXITCODE -ne 0) { throw 'Credential provisioning failed; the service has not been started.' }
     }
     $taskBinaryPath = '"{0}" --service --root "{1}" --data "{2}"' -f $taskExe,$taskInstallRoot,$taskDataRoot

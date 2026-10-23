@@ -11,7 +11,7 @@ QString current_user_sid();
 void require_service_data_acl(const QString& directory, const QString& operator_sid, bool readonly_config = false);
 void require_admin_owned_directory(const QString& directory);
 QString engine_pipe_name(const QString& data_directory);
-QJsonObject engine_request(const QString& data_directory, const QJsonObject& request, int timeout_ms = 2000);
+QJsonObject engine_request(const QString& data_directory, const QJsonObject& request, int timeout_ms = 2000, const QString& suffix = {});
 
 class LocalPipeServer {
 public:

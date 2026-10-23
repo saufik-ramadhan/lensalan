@@ -1,13 +1,16 @@
 #include "engine/host.hpp"
 #include "platform/local_pipe.hpp"
 #include "platform/credentials.hpp"
+#include "platform/camera_catalog.hpp"
 
 #include <QCoreApplication>
 #include <QDateTime>
 #include <QDir>
 #include <QFileInfo>
 #include <QJsonDocument>
+#include <QJsonArray>
 #include <QSaveFile>
+#include <QRegularExpression>
 #include <QTextStream>
 
 #ifndef NOMINMAX
@@ -91,17 +94,29 @@ int main(int argc, char** argv) {
     options.credential = option("--credential");
     options.operator_sid = option("--operator-sid");
     options.synthetic = args.contains("--synthetic");
+    bool cameras_valid = true;
+    options.synthetic_cameras = option("--cameras", "1").toInt(&cameras_valid);
     options.service = args.contains("--service");
     bool seconds_valid = true;
     options.run_seconds = option("--run-seconds", "0").toInt(&seconds_valid);
-    if (!seconds_valid || options.run_seconds < 0 || options.run_seconds > 86400 ||
+    if (!seconds_valid || !cameras_valid || options.synthetic_cameras < 1 || options.synthetic_cameras > 12 ||
+        (args.contains("--cameras") && !options.synthetic) || options.run_seconds < 0 || options.run_seconds > 86400 ||
         (options.service && (options.synthetic || options.run_seconds != 0))) {
         QTextStream(stderr) << "Invalid run mode or duration" << Qt::endl; return 2;
     }
     if (args.contains("--request")) {
         QJsonObject request{{"command",option("--request")}};
         if (args.contains("--id")) request["id"] = option("--id");
-        const auto response = opennvr::engine_request(options.data, request);
+        QString suffix;
+        if (request["command"].toString() == "live") {
+            const auto id = option("--camera", "camera-1");
+            if (!QRegularExpression("^[A-Za-z0-9_-]{1,32}$").match(id).hasMatch()) return 2;
+            suffix = ".Media." + id;
+            request["cursor"] = option("--cursor", "0").toLongLong();
+            request["generation"] = option("--generation", "-1").toLongLong();
+            request["epoch"] = option("--epoch");
+        }
+        const auto response = opennvr::engine_request(options.data, request, 2000, suffix);
         QTextStream(stdout) << QJsonDocument(response).toJson(QJsonDocument::Compact) << Qt::endl;
         return response["ok"].toBool() ? 0 : 1;
     }
@@ -115,10 +130,29 @@ int main(int argc, char** argv) {
             opennvr::require_admin_owned_directory(options.data);
             opennvr::require_admin_owned_directory(options.data + "/config");
             opennvr::require_service_data_acl(options.data + "/config", options.operator_sid, true);
-            const auto source = opennvr::load_camera_credential(option("--source-credential", options.root + "/.local/camera.json"));
-            opennvr::save_camera_credential(options.data + "/config/camera.json", source, true);
+            const auto catalog_file = option("--source-catalog");
+            QJsonArray cameras;
+            if (catalog_file.isEmpty()) {
+                const auto source = opennvr::load_camera_credential(option("--source-credential", options.root + "/.local/camera.json"));
+                opennvr::save_camera_credential(options.data + "/config/camera.json", source, true);
+            } else {
+                const auto sources = opennvr::camera_sources(opennvr::read_camera_catalog(catalog_file), QFileInfo(catalog_file).absolutePath(), {});
+                // Decrypt every input before writing any provisioned camera.
+                std::vector<opennvr::CameraCredential> credentials;
+                for (const auto& source : sources) credentials.push_back(opennvr::load_camera_credential(source.credential));
+                for (std::size_t i = 0; i < sources.size(); ++i) {
+                    const auto relative = "cameras/" + sources[i].id + ".json";
+                    opennvr::save_camera_credential(options.data + "/config/" + relative, credentials[i], true);
+                    cameras.append(QJsonObject{{"id",sources[i].id},{"name",sources[i].name},{"credential",relative}});
+                }
+            }
             QSaveFile settings(options.data + "/config/engine.json");
-            const QJsonObject data{{"operatorSid",options.operator_sid},{"retentionDays",14},{"quotaGB",100},{"reserveGB",10}};
+            QJsonObject data{{"operatorSid",options.operator_sid},{"retentionDays",14},{"quotaGB",100},{"reserveGB",10}};
+            if (QFileInfo::exists(settings.fileName())) {
+                const auto existing = opennvr::read_camera_catalog(settings.fileName());
+                for (const auto& key : {"retentionDays", "quotaGB", "reserveGB"}) if (existing.contains(key)) data[key] = existing[key];
+            }
+            if (!cameras.isEmpty()) data["cameras"] = cameras;
             if (!settings.open(QIODevice::WriteOnly) || settings.write(QJsonDocument(data).toJson()) < 0 || !settings.commit())
                 throw std::runtime_error("Cannot write service settings");
             QTextStream(stdout) << "Service credential provisioned with machine DPAPI" << Qt::endl;

@@ -4,6 +4,7 @@
 #include <QString>
 #include <QStringList>
 #include <QVariantList>
+#include <QVariantMap>
 
 class EngineClient;
 
@@ -26,6 +27,11 @@ class Backend : public QObject {
     Q_PROPERTY(bool engineService READ engineService NOTIFY changed)
     Q_PROPERTY(QString engineMessage READ engineMessage NOTIFY changed)
     Q_PROPERTY(QVariantList events READ events NOTIFY changed)
+    Q_PROPERTY(QVariantList cameras READ cameras NOTIFY camerasChanged)
+    Q_PROPERTY(QVariantMap cameraStates READ cameraStates NOTIFY changed)
+    Q_PROPERTY(QVariantList profiles READ profiles NOTIFY profilesChanged)
+    Q_PROPERTY(QString engineDirectory READ engineDirectory CONSTANT)
+    Q_PROPERTY(bool liveSupported READ liveSupported NOTIFY changed)
 
 public:
     explicit Backend(QString root, QObject* parent = nullptr);
@@ -44,6 +50,11 @@ public:
     bool engineService() const { return engine_service_; }
     QString engineMessage() const { return engine_message_; }
     QVariantList events() const { return events_; }
+    QVariantList cameras() const { return cameras_; }
+    QVariantMap cameraStates() const { return camera_states_; }
+    QVariantList profiles() const { return profiles_; }
+    QString engineDirectory() const { return engine_data_; }
+    bool liveSupported() const { return live_supported_; }
 
     Q_INVOKABLE void saveCamera(QString host, QString username, QString password);
     Q_INVOKABLE void startProbe(bool synthetic, bool substream, bool recording, bool preview);
@@ -55,12 +66,18 @@ public:
     Q_INVOKABLE void stopEngine();
     Q_INVOKABLE void refreshEvents(QString date, QString camera);
     Q_INVOKABLE void playEvent(QString id);
+    Q_INVOKABLE void saveProfile(QString id, QString name, QString host, QString username, QString password);
+    Q_INVOKABLE void removeProfile(QString id);
+    Q_INVOKABLE QString nextProfileId() const;
 
 signals:
     void changed();
+    void camerasChanged();
+    void profilesChanged();
 
 private:
     void append(QString message);
+    void reloadProfiles();
     void launch(bool synthetic, bool substream, bool recording, bool preview, bool detection);
     QString root_;
     QString host_;
@@ -80,6 +97,9 @@ private:
     QString filter_date_;
     QString filter_camera_;
     QVariantList events_;
+    QVariantList cameras_, profiles_;
+    QVariantMap camera_states_;
+    bool live_supported_ = false;
     bool engine_connected_ = false;
     bool engine_paused_ = false;
     bool engine_service_ = false;

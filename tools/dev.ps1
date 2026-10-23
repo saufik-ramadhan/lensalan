@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('build', 'test', 'run', 'probe-main', 'probe-sub', 'detect', 'ai-test', 'capabilities', 'engine', 'engine-status', 'engine-stop', 'camera-reconnect-test', 'package-engine')]
+    [ValidateSet('build', 'test', 'run', 'probe-main', 'probe-sub', 'detect', 'ai-test', 'ai-scheduler-test', 'capabilities', 'engine', 'engine-status', 'engine-stop', 'camera-reconnect-test', 'package-engine')]
     [string]$Action = 'build',
     [string]$MsysRoot = 'C:\msys64'
 )
@@ -43,6 +43,11 @@ try {
             $taskAiProcess = Start-Process -FilePath (Join-Path $taskProjectRoot 'build\dev\opennvr.exe') -ArgumentList '--ai-self-test' -WorkingDirectory $taskProjectRoot -WindowStyle Hidden -Wait -PassThru
             Get-Content -LiteralPath '.local\ai-selftest.json' -Raw
             if ($taskAiProcess.ExitCode -ne 0) { throw 'AI self-test failed.' }
+        }
+        'ai-scheduler-test' {
+            $taskAiProcess = Start-Process -FilePath (Join-Path $taskProjectRoot 'build\dev\opennvr.exe') -ArgumentList '--ai-scheduler-test' -WorkingDirectory $taskProjectRoot -WindowStyle Hidden -Wait -PassThru
+            Get-Content -LiteralPath '.local\ai-scheduler-validation.json' -Raw
+            if ($taskAiProcess.ExitCode -ne 0) { throw 'Shared AI scheduler test failed.' }
         }
         { $_ -in 'probe-main','probe-sub','detect' } {
             $taskProbeArgs = @('--camera-probe', '--seconds', '14', '--report', '.local/probe-result.json')

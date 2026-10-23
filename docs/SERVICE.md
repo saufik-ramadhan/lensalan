@@ -2,7 +2,7 @@
 
 ## Status dan batas verifikasi
 
-Pada 24 Oktober 2026 pengguna menyelesaikan instalasi elevated. Pemeriksaan SCM/proses mengonfirmasi OpenNVR berjalan sebagai LocalService di Session 0; API menunjukkan `service=true`, `state=running`, `streamReady=true`, `aiReady=true`, dan `storageReady=true`. Startup kamera/CUDA dan event person dalam service sudah terverifikasi: satu event complete 36,75 detik, selesai karena post-roll. Logout/reboot dan soak 24 jam belum diuji.
+Pada 24 Oktober 2026 pengguna menyelesaikan instalasi elevated. Pemeriksaan SCM/proses mengonfirmasi OpenNVR berjalan sebagai LocalService di Session 0; startup kamera/CUDA dan event person service sudah terverifikasi, dan pengguna melaporkan uji reboot lulus. Soak 24 jam belum dilakukan. Runtime multi-kamera/live grid perlu diperbarui dan diverifikasi tersendiri; hasilnya dicatat pada laporan multi-kamera.
 
 Sesi agen pengembangan tidak elevated; pemasangan dilakukan pengguna dari PowerShell Administrator. Windows memerlukan hak Administrator untuk registrasi service, penulisan Program Files dan pengaturan ACL ProgramData. Installer dapat direview dan diuji dengan `-DryRun` sebelum pemasangan.
 
@@ -45,6 +45,14 @@ Jika provisioning berhasil tetapi registrasi service gagal, gunakan bundle yang 
 ```
 
 Registrasi dan pembaruan command line service menggunakan `Win32_Service` melalui CIM agar kutip pada path `Program Files` tetap utuh di PowerShell 5.1 maupun 7. `sc.exe` dipakai untuk delayed startup dan recovery, dengan argumen yang tidak mengandung kutip bersarang. Transcript ditutup juga ketika instalasi gagal.
+
+## Memperbarui live grid dan katalog kamera
+
+Bangun dan kemas runtime terbaru, lalu jalankan installer elevated dengan bundle baru **tanpa `-Resume`**. Installer menghentikan service, mengganti runtime, memprovision credential dan memulai service lagi; data SQLite/rekaman tetap pada direktori yang sama. `-Resume` hanya melanjutkan registrasi runtime yang sudah disalin, bukan meng-upgrade binary.
+
+Tab Kamera menyimpan katalog CurrentUser DPAPI di `.local/cameras.json` beserta file credential per kamera. Installer otomatis memakai katalog tersebut bila ada, atau gunakan `-SourceCatalog <path>`. Tanpa katalog, credential kamera-1 lama tetap digunakan. Katalog menerima 1–12 ID unik dan path credential relatif yang dibatasi. Provisioning menggunakan machine DPAPI di `config/cameras/`, menulis daftar ke `config/engine.json` dan mempertahankan nilai retensi/kuota/reserve yang sudah ada. Kamera baru aktif setelah provisioning/restart; penyimpanan profil desktop saja tidak mengubah service aktif.
+
+Setelah update, `--request status` menyediakan `liveProtocol=1`, `cameraCount`, `runningCameras`, array `cameras` berisi status per kamera, serta `modelSessions` (satu setelah CUDA siap). Desktop lama tetap dapat membaca field agregat. Kanal `.Media.<id>` terpisah dari kontrol dan tidak membawa password.
 
 Default:
 
