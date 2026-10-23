@@ -2,6 +2,8 @@
 
 Nama publik proyek: **LensaLAN**. Identifier source/binary `opennvr`, service `OpenNVR`, path data lama dan protokol pipe dipertahankan untuk kompatibilitas deployment development. Riwayat commit sebelum pergantian nama tetap dipertahankan.
 
+Repository publik: [saufik-ramadhan/lensalan](https://github.com/saufik-ramadhan/lensalan). Branch utama `main`; milestone `m0-camera-prototype` dan `m1-user-engine` ikut dipublikasikan. Publikasi awal pada 24 Oktober 2026 telah lulus workflow Core dan Secret scan.
+
 ## Batas isi repository
 
 Repository hanya memuat source, pengujian sintetis, skrip dan dokumentasi yang direview. Credential DPAPI, katalog kamera aktual, konfigurasi mesin, database, rekaman, screenshot kamera, log/transcript, runtime/model unduhan dan bundle deployment disimpan di direktori lokal yang diabaikan Git. Tidak ada binary/model/rekaman yang diunggah sebagai release pada publikasi awal.

@@ -119,3 +119,10 @@ Catatan keputusan, perubahan, dan bukti pengujian. Gunakan commit Git sebagai ri
 - Git memakai email noreply. Runtime/model unduhan, credential/config aktual, database, video, screenshot, log dan bundle berada di lokasi yang diabaikan Git; tidak ada file tersebut dalam riwayat tracked. Ignore rules diperluas untuk katalog/per-camera credential, key/certificate privat dan dump.
 - Tambahkan dokumentasi publikasi serta workflow secret scan pada setiap push/pull request, dengan download CLI yang diverifikasi checksum dan output redacted. Riwayat pengembangan dipertahankan karena audit tidak menemukan materi yang perlu dihapus.
 - Build dan smoke QML branding lulus; pengujian core/multi-kamera serta installer PowerShell 5.1 lulus. Service tidak diganti/restart untuk perubahan branding ini. Audit final setelah commit dilakukan sebelum push.
+
+### Publikasi GitHub selesai
+
+- Repository publik dibuat di [saufik-ramadhan/lensalan](https://github.com/saufik-ramadhan/lensalan), lalu branch `main` dan dua tag milestone di-push. Commit branding/publikasi awal: `dfb23e8`; riwayat pengembangan tetap utuh.
+- Sebelum push, audit final terhadap 11 commit/155 blob historis tidak menemukan secret atau identifier komputer pribadi yang diperiksa. Tidak ada credential, data kamera, video, log, runtime/model atau bundle lokal yang diunggah.
+- GitHub mengonfirmasi visibility PUBLIC serta SHA branch/tag sama dengan lokal. Workflow Core dan Secret scan pada commit publikasi lulus; workflow Core kedua tag milestone juga lulus.
+- Desktop dengan judul LensaLAN dibuka kembali; service monitoring yang sama tetap Running tanpa restart akibat publikasi. Catatan penutupan publikasi ini kembali dipindai sebelum push.
