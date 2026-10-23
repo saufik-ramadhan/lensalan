@@ -2,7 +2,7 @@
 
 ## Status
 
-Engine mendukung 1–12 kamera, satu scheduler CUDA, kanal media per kamera dan live grid QML 1/4/9/12. Dua belas sumber sintetis dan 12 kanal CUDA pada gambar positif telah diuji. Versi service sebelumnya lulus startup kamera/CUDA di Session 0, event person dan reboot pengguna; build ini memerlukan verifikasi deployment. Sesi diagnostik AI tetap dibatasi 60 detik; engine tidak memiliki batas itu. ONVIF client belum tersedia.
+Engine mendukung 1–12 kamera, satu scheduler CUDA, kanal media per kamera dan live grid QML 1/4/9/12. Dua belas sumber sintetis dan 12 kanal CUDA pada gambar positif telah diuji. Build 0.3.0-dev sudah dipasang sebagai LocalService di Session 0; CUDA dan live grid satu kamera nyata lulus. Versi sebelumnya juga lulus event person dan reboot pengguna. Sesi diagnostik AI tetap dibatasi 60 detik; engine tidak memiliki batas itu. ONVIF client belum tersedia.
 
 ## Toolchain yang diuji
 

@@ -21,4 +21,4 @@ Tab **Live grid** menampilkan substream dari engine tanpa membuka RTSP tambahan.
 
 Data engine development berada di `.local/engine/`, termasuk database, credential terenkripsi bila diprovision, dan rekaman. Default retensi adalah 14 hari/100 GB, dengan reserve ruang disk. Klip M0 pada `.local/recordings/` tetap terpisah dan tidak dibersihkan oleh retensi engine.
 
-Service sebelumnya sudah lulus startup kamera/CUDA, event person di Session 0, dan reboot berdasarkan konfirmasi pengguna. Soak 24 jam belum dilakukan. Build multi-kamera memerlukan verifikasi deployment tersendiri; benchmark kamera nyata, zona deteksi, ekspor klip dan installer desktop lengkap masih tahap berikutnya.
+Service sebelumnya sudah lulus startup kamera/CUDA, event person di Session 0, dan reboot berdasarkan konfirmasi pengguna. Build multi-kamera 0.3.0-dev kini terpasang; CUDA dan live grid satu kamera nyata sudah diuji. Soak 24 jam belum dilakukan; benchmark 12 kamera nyata, zona deteksi, ekspor klip dan installer desktop lengkap masih tahap berikutnya.

@@ -2,7 +2,7 @@
 
 ## Status dan batas verifikasi
 
-Pada 24 Oktober 2026 pengguna menyelesaikan instalasi elevated. Pemeriksaan SCM/proses mengonfirmasi OpenNVR berjalan sebagai LocalService di Session 0; startup kamera/CUDA dan event person service sudah terverifikasi, dan pengguna melaporkan uji reboot lulus. Soak 24 jam belum dilakukan. Runtime multi-kamera/live grid perlu diperbarui dan diverifikasi tersendiri; hasilnya dicatat pada laporan multi-kamera.
+Pada 24 Oktober 2026 pengguna menyelesaikan instalasi elevated; startup kamera/CUDA dan event person service terverifikasi, serta pengguna melaporkan uji reboot lulus. Runtime kemudian diperbarui ke 0.3.0-dev melalui UAC: LocalService di Session 0, satu sesi CUDA, dan live grid kamera nyata sudah lulus. Soak 24 jam belum dilakukan. Detail dan batas hasil ada di [laporan multi-kamera](validation/MULTICAMERA_LIVE_GRID.md).
 
 Sesi agen pengembangan tidak elevated; pemasangan dilakukan pengguna dari PowerShell Administrator. Windows memerlukan hak Administrator untuk registrasi service, penulisan Program Files dan pengaturan ACL ProgramData. Installer dapat direview dan diuji dengan `-DryRun` sebelum pemasangan.
 

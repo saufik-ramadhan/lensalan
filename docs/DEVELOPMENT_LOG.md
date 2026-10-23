@@ -102,3 +102,11 @@ Catatan keputusan, perubahan, dan bukti pengujian. Gunakan commit Git sebagai ri
 - Uji CUDA aktual pada 12 kanal gambar positif lulus: masing-masing dua orang, `modelSessions=1`. Ini bukan benchmark 12 kamera nyata. Uji installer di PowerShell 5.1/7 juga lulus.
 - Bundle `artifacts/engine-bundle-20261024-live-grid-v03/` versi 0.3.0-dev disiapkan, 186 DLL/240 plugin. Uji headless 12 sumber/event/media/decode lulus dengan PATH child hanya Windows dan plugin/scanner dari bundle. Dry-run update instalasi aktual lulus.
 - Selama pengujian, service kamera lama tetap berjalan (PID 6076, AI/stream/storage siap, attempt pertama); rangkaian sintetis tidak membuka kamera atau menghentikan service tersebut. Deployment elevated runtime baru dan validasi live kamera nyata menjadi langkah berikutnya. Soak dan kapasitas/akurasi 12 RTSP nyata tetap terbuka.
+
+### Deployment live grid dan handoff
+
+- Setelah commit implementasi `5094d47`, installer update diluncurkan melalui Windows UAC dan selesai: transcript menyatakan provisioning machine DPAPI, konfigurasi SCM/recovery dan startup sukses. Service dihentikan/dijalankan kembali untuk mengganti runtime; tidak ada reboot/logout dari agen.
+- Runtime terpasang 0.3.0-dev memiliki hash engine sama dengan bundle. SCM/proses mengonfirmasi LocalService Running, PID 9760 di Session 0. API sesudah warmup: `liveProtocol=1`, `cameraCount=1`, `runningCameras=1`, stream/AI/storage siap, `modelSessions=1`, attempt pertama.
+- Uji live kamera nyata pada layout empat slot lulus: kamera-1 menghasilkan lima frame D3D11 dan status Live; slot lain kosong. Screenshot kamera nyata dinonaktifkan, metadata disimpan pada `.local/live-camera-grid-validation.json`.
+- Desktop terbaru dibuka sebagai proses interaktif, PID 2692. Pemeriksaan koneksi TCP menunjukkan dua RTSP established milik service dan tidak ada RTSP tambahan milik desktop. Snapshot ukuran rekaman sesudah upgrade sama dengan sebelum upgrade, 16.348.448 byte.
+- Pengguna dapat memakai tab Live grid dan Kamera. Profil tambahan diterapkan lewat installer elevated dengan bundle ini tanpa `-Resume`; hanya satu kamera fisik tersedia saat handoff. Reboot build sebelumnya dilaporkan lulus, sedangkan soak 24 jam, penerimaan 12 RTSP nyata dan uji person terkontrol sesudah update tetap belum dilakukan.
