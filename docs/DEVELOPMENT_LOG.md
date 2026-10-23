@@ -48,3 +48,10 @@ Catatan keputusan, perubahan, dan bukti pengujian. Gunakan commit Git sebagai ri
 - Pemeriksaan UI end-to-end lulus: desktop membaca manifest melalui IPC lalu memutar dua segmen sintetis sampai selesai melalui D3D11. QML smoke test dan pemeriksaan visual tidak menemukan error layout/runtime.
 - Installer dry-run lulus tanpa mengubah service/folder sistem/ACL. Paket mandiri disiapkan di `artifacts/` (diabaikan Git); runtime final harus diinstal dengan hak Administrator untuk memverifikasi Session 0.
 - Checkpoint akhir: 5/5 grup CTest kembali lulus (sekitar 30,2 detik); uji ulang bundle final tanpa MSYS2 pada PATH pulih ke kamera/CUDA dalam sekitar 2.594 ms. Instalasi SCM, logout/reboot dan soak 24 jam tetap belum diverifikasi.
+
+### Handoff M1
+
+- Implementasi disimpan pada commit `ac9c6cc`, tag `m1-user-engine`.
+- Desktop Monitoring & Event dibuka, dan engine kamera nyata dijalankan sebagai proses pengguna terpisah. Status terakhir: `running`, `streamReady=true`, `aiReady=true`, `storageReady=true`, `service=false`.
+- Engine ini terus berjalan setelah desktop ditutup. Operator dapat menggunakan Jeda deteksi/Hentikan engine pengguna untuk mengontrolnya. Belum ada autostart setelah login atau jaminan bertahan setelah logout.
+- Bundle final: `artifacts/engine-bundle-20261023-233840/`; panduan Administrator ada pada `SERVICE.md`. Tidak ada Windows Service/folder Program Files/ProgramData yang dibuat oleh sesi non-admin ini.

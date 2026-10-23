@@ -39,3 +39,5 @@ Hasil CTest awal: 5/5 kelompok lulus dalam sekitar 30 detik. Waktu recovery adal
 - Pemulihan kontainer `.part` menjadi video utuh; file semacam itu ditandai sebagai partial dan tidak diklaim sehat.
 
 M1 ini belum merupakan penerimaan MVP penuh. Laporan ini harus diperbarui setelah elevasi dan pengujian berikutnya, tanpa menimpa bukti M0.
+
+Pada handoff, engine kamera nyata sedang berjalan sebagai proses pengguna dan desktop terbuka. Native status API mengonfirmasi stream/AI/storage siap dengan `service=false`. Commit implementasi: `ac9c6cc`; tag: `m1-user-engine`.
