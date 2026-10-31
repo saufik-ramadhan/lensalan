@@ -133,3 +133,11 @@ Catatan keputusan, perubahan, dan bukti pengujian. Gunakan commit Git sebagai ri
 - Tambahkan PRODUCT_VISION dengan pembeda yang perlu dibuktikan, roadmap R0–R3, gerbang penerimaan, kontrak ekstensi dan metode perbandingan. Prioritas berikut tetap kesehatan/metrik, benchmark, fault test dan soak; kapasitas MVP tetap 12 kamera sampai ada penerimaan berikutnya.
 - PRD menjadi v0.2 dan rencana pengembangan/README ditautkan ke visi baru. Fitur masa depan dan estimasinya dipisahkan dari implementasi yang sudah bekerja; tidak ada perubahan runtime/service atau pembukaan API jaringan pada tahap dokumen ini.
 - Posisi native C++ dijelaskan sebagai kontrol atas resource, GPU dan integrasi Windows. Keunggulan performa belum diklaim tanpa benchmark sebanding, karena platform berbasis Python juga memakai komponen media/inferensi native.
+
+## 2026-10-31 — README berbahasa Inggris dan screenshot
+
+- Pengguna meminta screenshot dari `docs/screenshot/` ditampilkan pada README, seluruh README diterjemahkan ke Bahasa Inggris, lalu di-push.
+- README kini menjelaskan status development, empat halaman UI, arsitektur, cara menjalankan, storage, validasi dan dokumentasi dalam Bahasa Inggris. Label UI Indonesia dipertahankan sebagai rujukan agar sesuai aplikasi/screenshot; aplikasi sendiri tidak diterjemahkan pada perubahan dokumentasi ini.
+- Keempat screenshot yang dipilih pengguna diperiksa secara visual. Nilai koneksi/account privat pada screenshot diagnostik dihapus dengan built-in imagegen; versi publik disimpan sebagai `diagnostics-maintenance-public.png`. Prompt membatasi edit pada pengosongan dua field tersebut dan meminta UI lain dipertahankan. Gambar asli tidak ditimpa, tidak di-stage dan ditambahkan ke ignore rules.
+- Halaman live, event dan registrasi memakai screenshot yang diberikan pengguna. Dokumentasi publikasi diperbarui untuk mencatat persetujuan publikasi screenshot terpilih, dengan data runtime/credential tetap lokal.
+- Validasi perubahan meliputi referensi Markdown, metadata gambar, diff dan pemindaian rahasia sebelum push; tidak ada perubahan runtime/service.

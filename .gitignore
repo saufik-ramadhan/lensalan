@@ -44,6 +44,9 @@ gstreamer-registry.bin
 *.pfx
 *.p12
 *.dmp
+
+# Original screenshot contains private camera connection/account values.
+/docs/screenshot/diagnostics-maintenance.png
 __pycache__/
 *.pyc
 /.venv/

@@ -8,6 +8,8 @@ Repository publik: [saufik-ramadhan/lensalan](https://github.com/saufik-ramadhan
 
 Repository hanya memuat source, pengujian sintetis, skrip dan dokumentasi yang direview. Credential DPAPI, katalog kamera aktual, konfigurasi mesin, database, rekaman, screenshot kamera, log/transcript, runtime/model unduhan dan bundle deployment disimpan di direktori lokal yang diabaikan Git. Tidak ada binary/model/rekaman yang diunggah sebagai release pada publikasi awal.
 
+Pada 31 Oktober 2026 pengguna secara eksplisit memilih screenshot di `docs/screenshot/` untuk README publik. Empat gambar dokumentasi direview secara visual; versi diagnostik yang dipublikasikan menggunakan nama `diagnostics-maintenance-public.png` dengan nilai IP/account dihapus melalui built-in imagegen. Screenshot diagnostik asli tetap lokal dan diabaikan Git. Screenshot runtime otomatis, credential, video, database dan log tetap tidak termasuk publikasi.
+
 Sebelum publikasi awal, Gitleaks 8.30.1 memeriksa seluruh commit yang dapat dijangkau branch/tag dengan output rahasia disamarkan. Pemeriksaan tambahan mencakup seluruh blob historis, metadata commit/tag, exact-match password kamera hanya di memori, alamat LAN, path profil Windows, hostname dan SID pengguna. Hasil awal bersih; alamat email commit menggunakan GitHub noreply. Artefak audit terperinci tetap lokal dan tidak ikut dipublikasikan.
 
 Workflow Secret scan memeriksa riwayat lengkap pada push/pull request. Workflow ini membantu menemukan secret yang dikenali scanner; review file tetap diperlukan sebelum setiap publikasi. File yang pernah masuk commit tetap berada dalam riwayat walaupun kemudian ditambahkan ke `.gitignore`.

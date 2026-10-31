@@ -1,29 +1,86 @@
 # LensaLAN
 
-Aplikasi desktop Windows untuk memonitor maksimal 12 IP camera di LAN dan merekam event ketika host computer mendeteksi orang.
+A native Windows desktop NVR for monitoring up to 12 IP cameras on a local network and recording events when the host detects a person.
 
-Visi produk: platform NVR native Windows yang berkembang menuju analitik, otomasi dan integrasi modular. Kapasitas serta fitur yang sudah terbukti tetap dibedakan dari [roadmap jangka panjang](docs/PRODUCT_VISION.md).
+LensaLAN is growing toward modular camera analytics, automation, and integrations. Implemented capabilities and validation results are kept separate from the [long-term product roadmap](docs/PRODUCT_VISION.md).
 
-Status: live grid 1/4/9/12 dan engine hingga 12 kamera sudah diimplementasikan, dengan satu scheduler CUDA bersama, reconnect/writer per kamera, SQLite, retensi, kontrol IPC dan review event. Dua belas sumber sintetis serta render grid telah diuji; validasi kapasitas 12 kamera RTSP nyata dan soak masih terbuka. Ini belum merupakan NVR produksi.
+## Development status
 
-- [Product Requirements Document](docs/PRD.md)
-- [Rencana pengembangan](docs/DEVELOPMENT_PLAN.md)
-- [Visi produk dan roadmap](docs/PRODUCT_VISION.md)
-- [Build dan menjalankan prototipe](docs/BUILD.md)
-- [Catatan pengembangan](docs/DEVELOPMENT_LOG.md)
-- [Hasil validasi M0](docs/validation/M0_FEASIBILITY.md)
-- [Hasil validasi M1](docs/validation/M1_ACCEPTANCE.md)
-- [Pemasangan Windows Service](docs/SERVICE.md)
-- [Verifikasi multi-kamera dan live grid](docs/validation/MULTICAMERA_LIVE_GRID.md)
+The current implementation includes 1/4/9/12 live-grid layouts, an engine supporting up to 12 configured cameras, a shared CUDA inference scheduler, independent reconnect and recording workers, SQLite event indexing, retention, local IPC control, and event review/playback.
 
-Target awal: TP-Link Tapo C520WS, Intel Core i5-12400F, NVIDIA RTX 3060 12 GB, RAM DDR4 16 GB. Stack yang direncanakan: C++20, Qt 6/QML, GStreamer, ONNX Runtime CUDA, SQLite, dan Windows Service.
+Twelve synthetic sources and all grid layouts have been tested. CUDA inference and live viewing have also been verified with one physical Tapo camera through the Windows Service. Performance with 12 physical RTSP cameras and a controlled 24-hour soak test remain unverified. This is development software, with further validation required before production use.
 
-Pada komputer dengan service yang sudah terpasang, jalankan `LensaLAN.cmd`; desktop mendeteksi konfigurasi service dan terhubung ke engine di ProgramData. Untuk development tanpa service, pilih **Jalankan engine pengguna**. Engine berjalan terus dan tidak ikut berhenti saat jendela ditutup. Gunakan **Jeda deteksi** atau **Hentikan engine pengguna** untuk mengontrol proses pengguna. Tab Diagnostik mempertahankan probe M0 yang terpisah.
+## Screenshots
 
-Tab **Live grid** menampilkan substream dari engine tanpa membuka RTSP tambahan. Tab **Kamera** menyimpan hingga 12 profil terenkripsi; katalog diterapkan ke service lewat installer elevated. Runtime service lama perlu diperbarui untuk mengaktifkan kanal media baru. Klik dua kali pada tile untuk fokus satu kamera; gunakan pemilih grid/paginasi untuk kembali atau berpindah kamera.
+The screenshots show the development build. The application UI is currently in Indonesian.
 
-Data engine development berada di `.local/engine/`, termasuk database, credential terenkripsi bila diprovision, dan rekaman. Default retensi adalah 14 hari/100 GB, dengan reserve ruang disk. Klip M0 pada `.local/recordings/` tetap terpisah dan tidak dibersihkan oleh retensi engine.
+### Live monitoring
 
-Service sebelumnya sudah lulus startup kamera/CUDA, event person di Session 0, dan reboot berdasarkan konfirmasi pengguna. Build multi-kamera 0.3.0-dev kini terpasang; CUDA dan live grid satu kamera nyata sudah diuji. Soak 24 jam belum dilakukan; benchmark 12 kamera nyata, zona deteksi, ekspor klip dan installer desktop lengkap masih tahap berikutnya.
+Live video is delivered by the engine without opening additional RTSP connections from the desktop. Grid layouts, pagination, and a focused camera view are available.
 
-Nama produk dan repository adalah **LensaLAN**. Identifier internal `opennvr`, nama service `OpenNVR`, path data serta variabel `OPENNVR_*` dipertahankan untuk kompatibilitas instalasi development yang sudah ada. Launcher lama tetap tersedia sebagai alias. Detail publikasi dan perlindungan data lokal ada di [PUBLICATION.md](docs/PUBLICATION.md).
+![LensaLAN live monitoring with a focused camera view](docs/screenshot/live-monitoring.png)
+
+### Event monitoring and playback
+
+Review recording status and filter events by date and camera, then play finalized event segments.
+
+![LensaLAN engine status and recorded event list](docs/screenshot/event-monitoring.png)
+
+### Camera registration
+
+Manage up to 12 encrypted camera profiles. Apply the local catalog to the service through the elevated installer.
+
+![LensaLAN camera profile registration form](docs/screenshot/cctv-register.png)
+
+### Diagnostics and maintenance
+
+Test streams, person detection, and recording independently from normal monitoring. Camera IP and account values have been removed from this screenshot for publication.
+
+![LensaLAN camera diagnostics with private camera identifiers removed](docs/screenshot/diagnostics-maintenance-public.png)
+
+## Architecture and reference hardware
+
+The stack consists of **C++20, Qt 6/QML, GStreamer, ONNX Runtime CUDA, SQLite, and a Windows Service**.
+
+The initial reference setup uses a TP-Link Tapo C520WS, Intel Core i5-12400F, NVIDIA RTX 3060 12 GB, and 16 GB DDR4 RAM. These are the development reference devices, not a guarantee of 12-camera performance.
+
+The service owns camera connections, inference, recording, and storage. The desktop consumes status and media through local IPC. Closing the desktop does not stop the engine.
+
+## Running the application
+
+Prepare the development environment and build the application using the [build guide](docs/BUILD.md), then launch:
+
+```powershell
+.\LensaLAN.cmd
+```
+
+On a machine with the service installed, the desktop detects its configuration and connects to the engine in ProgramData. For development without an installed service, use **Start user engine** (`Jalankan engine pengguna`). The pause and stop controls manage detection and the user-mode engine; Windows Service start/stop is managed separately.
+
+The **Live grid** tab displays the engine's substreams. Double-click a tile to focus on one camera, and use the layout selector or pagination to change views. An older service runtime must be upgraded to support the media channels used by the live grid.
+
+The **Camera** tab (`Kamera`) stores encrypted profiles for up to 12 cameras. Catalog changes take effect in the service after applying them through the elevated installer. The **Diagnostics** tab (`Diagnostik kamera`) provides separate stream, detection, and recording probes.
+
+## Local storage and validation
+
+Development engine data lives in `.local/engine/`, including the event database, recordings, and encrypted credentials when provisioned. The initial retention policy is 14 days with a 100 GB quota and a free-space reserve. Earlier M0 clips in `.local/recordings/` remain separate and are not managed by the engine's retention policy.
+
+The earlier service build passed camera/CUDA startup and person-event recording in Session 0; the user also confirmed a reboot test. The multi-camera 0.3.0-dev runtime has been deployed and tested with CUDA and live viewing from one physical camera. A controlled soak test, 12-camera hardware benchmarks, detection zones, clip export, and a complete desktop installer remain future work.
+
+## Documentation
+
+The linked project documents are currently primarily in Indonesian.
+
+- [Product requirements](docs/PRD.md)
+- [Development plan](docs/DEVELOPMENT_PLAN.md)
+- [Product vision and roadmap](docs/PRODUCT_VISION.md)
+- [Build and development setup](docs/BUILD.md)
+- [Development log](docs/DEVELOPMENT_LOG.md)
+- [M0 validation results](docs/validation/M0_FEASIBILITY.md)
+- [M1 validation results](docs/validation/M1_ACCEPTANCE.md)
+- [Windows Service installation](docs/SERVICE.md)
+- [Multi-camera and live-grid validation](docs/validation/MULTICAMERA_LIVE_GRID.md)
+- [Publication and local-data protection](docs/PUBLICATION.md)
+
+## Compatibility names
+
+The product and repository are named **LensaLAN**. Internal `opennvr` identifiers, the `OpenNVR` service name, legacy data paths, and `OPENNVR_*` environment variables are retained for compatibility with existing development deployments. The original launcher remains available as an alias.
